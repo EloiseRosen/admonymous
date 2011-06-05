@@ -1,0 +1,31 @@
+Models:
+  User
+    name
+    create_date
+    update_date
+    user
+    image
+  
+  Response
+    user
+    create_date
+    body
+    reveal_date
+    revealed
+    
+Views:
+  Home page -- intro if no logged in, dashboard if logged in
+  User page -- basically just the submit form
+  Printable page
+  
+TASKS
+
+Basic functionality
+  Allow users to change username
+  Allow picture upload
+  
+Design
+  Pick a website name
+  Fill in the actual text to be displayed
+  Make stylesheet
+  Choose images if we want any
