@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<p> Leave a response for {{ user.name }}.</p>
+
+<form action="/{{ user.name }}" method="post" accept-charset="utf-8" id="response-form">
+  
+  <input type="text" name="responder" value="anonymous" id="responder"/>
+  <br/>
+  <textarea name="response" style="width:800px;height:500px"></textarea>
+
+  <p><input type="submit" value="Submit"></p>
+</form>
+
+<script type="text/javascript" charset="utf-8">
+  $('form#response-form').submit(function() {
+    alert('submitting!');
+    return false;
+  });
+</script>
+
+{% endblock %}
