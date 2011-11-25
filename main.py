@@ -4,7 +4,7 @@ from helpers import email
 from google.appengine.ext import webapp, db
 from google.appengine.ext.webapp import util, template
 from google.appengine.api import users
-import datetime
+import datetime, urllib
 
 PER_PAGE = 10
 MAX_PER_PAGE = 100
@@ -151,7 +151,8 @@ class PrintablePageHandler(webapp.RequestHandler):
       user = User.all().filter('google_account', google_account).get()
       if not user:
         self.redirect('/')
-      template_values = {'user':user}
+      encoded_url = urllib.quote("http://www.admonymous.com/%s"%user)
+      template_values = {'user':user, 'encoded_url':encoded_url}
     else:
       self.redirect('/')
     path = 'templates/print.html'
