@@ -1,0 +1,59 @@
+{% autoescape off %}
+{% spaceless %}
+<body style="background-color: #f2f1e6;">
+  <table align="center" style="font-size: 12px;" cellpadding="0" cellspacing="0">
+
+    <tr id="header">
+  		<td>
+  			{% block header %}
+  			{% include "_flakes/generic_header.html" %}
+  			{% endblock %}
+  		</td>
+    </tr>
+
+  	{% block top_hr %}
+  	{% include "_flakes/hr.html" %}
+  	{% endblock %}
+
+  	<tr id="content">
+  		<td>
+  			<table>
+  				<tr>
+  					<td align="left" width="615" cellpadding="0">
+  						{% block content %}
+  						<font face="Helvetica, Arial, Sans Serif, sans-serif" style="font-size: 12px;">
+  							{{ content }}
+  						</font>
+  						{% endblock %}
+  					</td>
+  				</tr>
+  			</table>
+  		</td>
+  	</tr>
+
+  	{% block bottom_hr %}
+  	{% include "_flakes/hr.html" %}
+  	{% endblock %}
+
+  	<tr id="small-print">
+  		<td>
+
+  			{% block small_print %}
+  			<table style="font-size: 9px; color:#7b7b7b;">
+  				<tr>
+  					<td align="center" width="615">
+  						<font face="Helvetica, Arial, Sans Serif, sans-serif">
+  							Sent by <a href="http://www.admonymous.com">admonymous.com</a>.
+  						</font>
+  					</td>
+  				</tr>
+  			</table>
+  			{% endblock %}
+
+  		</td>
+  	</tr>
+
+  </table>
+</body>
+{% endspaceless %}
+{% endautoescape %}

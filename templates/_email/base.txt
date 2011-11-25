@@ -1,0 +1,13 @@
+{% block header %}
+---------------------------------------------------------------
+ Admonymous.com -- admire or admonish your friends anonymously.
+---------------------------------------------------------------
+{% endblock %}
+{% block content %}
+{{ content }}
+
+--
+{% endblock %}
+{% block small_print %}
+http://www.admonymous.com
+{% endblock %}

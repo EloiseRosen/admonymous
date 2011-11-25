@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block content %}
+<table border="0" cellspacing="30" cellpadding="10">
+	<tr>
+		<td>
+			<font face="Helvetica, Arial, Sans Serif, sans-serif" style="font-size: 12px;">
+				<p>Hi{% if target_user.name %} {{ target_user.name }}{% endif %},</p>
+				<p><strong>{% if author %}{{ author }}{% else %}Someone{% endif %} just left you a response on <a href="http://www.admonymous.com">Admonymous.com</a>:</strong></p>
+				<blockquote>
+					{{ body_html }}
+				</blockquote>
+				<p><strong><a href="{{ host_url }}/">Click here to see all of your responses</a>.</strong></p>
+			</font>
+		</td>
+	</tr>
+</table>
+{% endblock %}

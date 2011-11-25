@@ -1,0 +1,11 @@
+{% extends "base.txt" %}
+
+{% block content %}
+Hi{% if target_user.name %} {{ target_user.name }}{% endif %},
+
+{% if author %}{{ author }}{% else %}Someone{% endif %} just left you a response on Admonymous.com:
+
+	{{ body_txt }}
+
+Click here to see all of your responses: {{ host_url }}
+{% endblock %}

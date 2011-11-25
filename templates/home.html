@@ -1,40 +1,154 @@
 {% extends "base.html" %}
 {% block content %}
+
+<script type="text/javascript" charset="utf-8">
+  $(document).ready(function() {
+    $('input#delete-account').click(function() {
+      if (confirm('Are you sure you want to delete your username? This won\'t affect your Google account, but will delete all of the admonitions people have left for you.')) {
+        window.location = "/delete_username";
+      }
+    });
+  });
+</script>
+
 {% if not user %}
-<h1>Welcome to [website name]!</h1>
-
-<p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud kjhkjexercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
-
-<a href="{{ login_url }}">Click here to log in with your Google account</a> (If you don't have a Google account, <a href="https://www.google.com/accounts/NewAccount">click here to create one</a>.)
-{% else %}
-
-<h1>Hi {{ user.name }}!</h1>
-
-<div style="width:200px;float:right;">
-  <a href="/{{ user.name }}/print">Print declaration page</a>
-</div>
-
-{% for response in responses %}
-  <div class="response">
-    <div class="response-meta">
-      <span style="font-weight:bold;">{{ response.create_date|date:"l n.j.y" }}</span><br/>
-      <span style="color:#666;">{{ response.author|default_if_none:"anonymous" }}</span>
+  <div style="width:560px;margin-left:auto;margin-right:auto;padding:40px 0 30px 0;text-align:center;">
+    <img src="/static/images/admonymous.png" style="padding-bottom:50px;"/>
+    <a href="{{ login_url }}" class="btn nodecorate">Log in with your Google account</a>
+    <div style="clear:both;">
+      
     </div>
-    <div class="response-body">
-      {{ response.body }}
-    </div>
+    <br/>
+    <p></p>
+    <p></p>
+    
+    <p><strong>Admonition</strong> (plural admonitions): Gentle or friendly reproof; counseling against fault or oversight; warning.</p>
+
+    <p>People have faults. Generally, faults are not easy to amend, but once aware of them, we can work towards their resolution. Hardest to resolve are faults that we are blind to, so we depend on others to hold up the mirror of admonition and help us become aware of them.</p>
+
+    <p>Admonitions are rare in most societies, while unconstructive criticism and insincere flattery are common. Most people recoil from reproving others, since they do not want to risk reactions of anger or hate. Admonitions are beneficial to both giver and recipient, but the inability to deliver them without risking an adverse reaction significantly limits their use.</p>
+
+    <p>Admonymous allows everyone to anonymously admonish and admire their friends and acquaintances. All you need to do in order to let other admonish and admire you is sign up (link?) and publish the admonition link where people can see it: in your email signature, on notes posted in places where you spend much time, on your shirt. By becoming aware of your blind spots, you will be able to address them.</p>
+    
+    
   </div>
-{% endfor %}
+{% else %}
+  {% if user.username %}
+    <div style="height:78px;padding:19px 32px 0 22px;">
+      <div style="float:left;">
+        <h2>{{ user.name }} ({{ user.username }})</h2>
+        <a href="/">My admonitions</a> | <a href="/{{ user.username }}">My public page</a> | <a href="/print" target="_new">Print an announcement</a> | <a href="{{ logout_url }}">Log out</a>
+      </div>
 
-<div id="pagination">
-  {% if newer_offset %}
-  <a href="/?per_page=10&amp;offset={{ newer_offset }}">&larr; Newer Responses</a>
-  {% endif %}
-  {% if older_offset %}
-  <span style="float:right;"><a href="/?per_page=10&amp;offset={{ older_offset }}">Older Responses &rarr;</a></span>
-  {% endif %}
-</div>
+      <div style="float:right;text-align:right;">
+        <img src="/static/images/admonymous_small.png" width="137" height="68"/>
+      </div>
+    </div>
 
+    <hr/>
+
+    <div style="padding:0 22px;">
+      {% if responses %}
+        {% for response in responses %}
+          <div class="response">
+            <div class="response-meta">
+              <span style="font-weight:bold;">{{ response.create_date|date:"l n.j.y" }}</span><br/>
+              <span style="color:#666;">{{ response.author|default_if_none:"anonymous" }}</span>
+            </div>
+            <div class="response-body">
+              {{ response.body }}
+            </div>
+          </div>
+        {% endfor %}
+      {% else %}
+        <h1>Welcome!</h1>
+        <div class="alert-message block-message info">
+          You don't have any admonitions yet. To get some action, you can <a href="/print" target="_new">print out</a> a special little poster and post it up on your office door or wherever your friends will see it. If you are really hardcore, you can put your URL on a T-shirt! Your URL is:<br/>
+          <pre style="margin:10px 0;"><a href="http://www.admonymous.com/{{ user.username }}">http://www.admonymous.com/{{ user.username }}</a></pre>
+          You can also ask for feedback on the internets: <a target="twitter" href="http://twitter.com/home?status=Soliciting constructive admonitions: http://www.admonymous.com/{{ user.username }}">Solicit constructive admonitions via Twitter</a>
+        </div>
+      {% endif %}
+    </div>
+
+      
+    {% if newer_offset or older_offset %}
+    <div class="pagination" style="padding:0 20px;">
+      <ul>
+        <li class="prev{% if not older_offset %} disabled{% endif %}"><a href="#">&larr; Previous</a></li>
+        {# <li class="active"><a href="#">1</a></li> #}
+        {# <li><a href="#">2</a></li> #}
+        {# <li><a href="#">3</a></li> #}
+        {# <li><a href="#">4</a></li> #}
+        {# <li><a href="#">5</a></li> #}
+        <li class="next{% if not newer_offset %} disabled{% endif %}"><a href="#">Next &rarr;</a></li>
+      </ul>
+    </div>
+    {% else %}
+    <br/>
+    {% endif %}
+
+    <hr/>
+    
+    
+    <input type="submit" class="btn danger" name="submit" value="Delete user account" id="delete-account" style="float:right;margin:23px 20px 0 0;"/>
+    
+  	<form action="/" method="post" accept-charset="utf-8" class="form-stacked">
+  	  <strong>Update your info:</strong>
+  	  <fieldset>
+  	    {% if username_taken %}
+  	    <br/>
+        <div class="alert-message error" style="width:469px;">
+          Sorry, the username <strong>{{ username_taken }}</strong> is not available.
+        </div>
+        {% endif %}
+        {% if success %}
+  	    <br/>
+        <div class="alert-message success" style="width:469px;">
+          Updated! Make sure to tell your friends when you change your username.
+        </div>
+        {% endif %}
+        <input name="name" value="{{ user.name }}" style="height:29px;"/>
+        <input name="username" value="{{ user.username }}" style="height:29px;"/>
+        <input type="submit" class="btn primary" name="submit" value="Change" id="submit"/>
+  	  </fieldset>
+    </form>
+    
+  {% else %}
+  
+    <div style="height:78px;padding:19px 32px 0 22px;">
+      <div style="float:left;">
+        <h2>Admonymous</h2>
+        <a href="{{ logout_url }}">Log out</a>
+      </div>
+
+      <div style="float:right;text-align:right;">
+        <img src="/static/images/admonymous_small.png" width="137" height="68"/>
+      </div>
+    </div>
+
+    <hr/>
+  
+    <div style="width:200px;margin-left:auto;margin-right:auto;padding:40px 0 30px 0;">
+      <form action="/" method="post" accept-charset="utf-8" class="form-stacked">
+    	  <fieldset>
+    	    {% if username_taken %}
+    	    <br/>
+          <div class="alert-message error">
+            Sorry, the username <strong>{{ username_taken }}</strong> is not available.
+          </div>
+          {% endif %}
+          <label for="name">Your full name</label>
+          <input name="name" value="{{ user.name|default_if_none:"" }}" style="height:29px;"/>
+          <label for="username">Pick a username</label>
+          <input name="username" value="{{ user.username|default_if_none:"" }}" style="height:29px;"/><br/><br/>
+          <input type="submit" class="btn primary" name="submit" value="Begin" id="submit" style="float:right;"/>
+    	  </fieldset>
+      </form>
+    </div>
+  
+    
+  {% endif %}
+  
 {% endif %}  
 {% endblock %}
 
