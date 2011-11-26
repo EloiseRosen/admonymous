@@ -143,7 +143,17 @@ class UserPageHandler(webapp.RequestHandler):
     path = 'templates/user.html'
     page = template.render(path, template_values, debug=(True if 'local' in self.request.host_url or users.is_current_user_admin() else False))
     self.response.out.write(page)
-    
+
+class CrashCourseHandler(webapp.RequestHandler):
+    def get(self):
+        args = self.request.arguments()
+        all_topics = [{'name': 'giving', 'description': 'Giving admonition'},
+                      {'name': 'receiving', 'description': 'Receiving admonition'},
+                      {'name': 'anonymity', 'description': 'Maintaining anonymity'},
+                      {'name': 'faq', 'description': 'Frequently Asked Questions'}]
+        page = template.render('templates/crash_course.html', {'topic':args, 'topic_list': all_topics})
+        self.response.out.write(page)
+
 class PrintablePageHandler(webapp.RequestHandler):
   def get(self):
     google_account = users.get_current_user()
@@ -176,6 +186,7 @@ class DeleteUserHandler(webapp.RequestHandler):
 def main():
     application = webapp.WSGIApplication([('/', HomeHandler), 
                                           ('/print', PrintablePageHandler),
+                                          ('/crash_course', CrashCourseHandler),
                                           ('/delete_username', DeleteUserHandler),
                                           ('/([0-9a-zA-Z_\-]+)', UserPageHandler)],
                                          debug=True)

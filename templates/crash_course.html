@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block content %}
+
+<SCRIPT TYPE="text/javascript">
+<!--
+function popup(mylink, windowname)
+{
+if (! window.focus)return true;
+var href;
+if (typeof(mylink) == 'string')
+   href=mylink;
+else
+   href=mylink.href;
+window.open(href, windowname, 'width=400,height=200,scrollbars=yes');
+return false;
+}
+//-->
+</SCRIPT>
+
+{% if not topic %}
+
+{% for current_topic in topic_list %}
+<p><a href="/crash_course?{{ current_topic.name }}" onClick="return popup(this, '{{ current_topic.description }}')">{{ current_topic.description }}</a></p>
+{% endfor %}
+
+{% else %}{% if "giving" in topic %}
+
+<h1>Giving admonition</h1>
+
+<p>The mask of anonymity is a strong protection. It gives you the power to deliver information without worrying about harsh responses. This makes it easy to abuse. Here are a few suggestions for making sure you deliver admonitions, not badmonitions:</p>
+
+<ul>
+  <li>Be constructive. Make sure the recipient can act upon your admonition. Good: "Please try to make less clicking noises. A lot of people are annoyed by them." Bad: "You suck."</li>
+  <li>Admire. Just as the recipient may need your feedback to change behavior that bothers you, they may not be aware of how other aspects of their behavior please you, and even if they are not blind to it, you could encourage them further by giving explicit praise. Use the site to encourage positive behavior as much as you use it to change negative behavior.</li>
+  <li>Be gentle. As long as you get the message through, there is no need to be harsh. How you express an admonition can be almost as important as the content. Be mindful of wording, and use softer forms over more harsh alternatives (for example, consider using “could” instead of “should”). Good: "Sometimes you smell of sweat. Perhaps you could shower more often." Bad: "You stink!"</li>
+  <li>Be specific. Provide as many details as you can without exposing yourself. Not only is this going to help the recipient identify exactly the problematic aspects of their behavior, it will also encourage them to take you seriously. Good: “When you arrange meetings, sometimes they are ineffective because you don’t stop people when they go off-topic.” Bad: “Your meetings are wasting people’s time.”</li>
+  <li>Be concrete. If you can point out specific actions, it will be easier for the recipient to figure out how to change their behavior. Good: "Please clean up more thoroughly after you use the espresso machine." Bad: "Be more clean."</li>
+<li> Don't abuse. It's easy to be mean when anonymity protects you. Remember that the goal is helping your friends, not making them feel miserable.</li>
+  <li>Sandwich. People will find it much easier to address your admonitions if you surround them by admirations. Good: "I love your social nature in the office, but sometimes you speak very loudly, and it makes it hard for other people to work." Bad: "You talk loudly in the office all day long."</li>
+  <li>Exercise discretion. You're not here to organize the world's information: there may be things that people don't know and they're better off not knowing. Think before you click. For example: "She told me just before she got on the plane that she never really loved you."</li>
+  <li>Be aware of your power. Place yourself in the recipient’s shoes and imagine how you would feel if you were the one to receive the admonition that you just wrote.</li>
+</ul>
+
+{% else %}{% if "receiving" in topic %}
+
+<h1>Receiving admonition</h1>
+
+<p>It can be scary to let the world tell you anything, in your (virtual) face, without fearing any consequences. You don’t know what to anticipate - such is the nature of blind spots. Perhaps you fear that some people might abuse their power and try to hurt you. Perhaps you’re not quite ready for completely unconstrained admonition. Here are a few suggestions on receiving admonition:</p>
+
+<ul>
+<li>Leave your ego at the door. The goal is to improve yourself, not to convince yourself that you're already perfect.</li>
+<li>Be honest. Some admonitions may be hard to receive, and you might be tempted to dismiss them. You might feel some combination of anger, guilt or shame. Observe those emotions, let them subside a bit and ask yourself: could this be true, after all? There is no need to be defensive. Admonitions may sound like accusations, but they are merely pieces of information, brought to your attention so you can make positive changes in the future. You may accept or reject suggestions, but try to avoid making up stories about the past - what’s done is done, and now you have the power to learn from the past, not rewrite it.</li>
+<li>Be practical. Find actions you can do to address the admonition. Being aware of the problem is important, but it is even more useful to make a concrete plan.</li>
+<li>Ignore badmonitions. Some people may abuse the site and try to hurt you. Others may simply not recognize that the problem is within them, not you. Not everything that bothers someone else is an actual issue that you should fix. Learn to identify the real issues and don't let badmonitions get to you.</li>
+<li>Use the verifiability test: a good admonition should be one you can verify, at least to some degree. If it refers to recurring behavior, you can start paying attention to that aspect from now on. If it refers to a past incident, you can reconstruct it in memory. If it refers to an isolated event that can’t be reconstructed, it is not useful! Remember: blind spots are not unverifiable. Just because you were not aware of (or chose to ignore) them before doesn’t mean you can’t critically evaluate them once they’re brought to your attention. Making sure you can verify the truthfulness of an admonition is a very powerful tool to protect yourself from badmonitions.</li>
+<li>Be explicit about what kind of admonition you’re interested in receiving. It’s perfectly reasonable to focus on specific areas. If you feel you’re not ready for admonitions in certain areas, mentioning the areas where you do want admonition will help focus people and give you more control over the process.</li>
+</ul>
+
+{% else %}{% if "anonymity" in topic %}
+
+<h1>Maintaining anonymity</h1>
+
+<p>Are you afraid of being recognized despite the lack of identification on your admonition? Here are a few suggestions on making sure your anonymity is preserved.</p>
+
+<li>Make sure the Admonymous link you followed was probably seen by many other people. T-shirts, stickers, posters, facebook posts and personal websites are examples of methods of distribution that are likely to be seen by many. A link given to you personally is a bit more suspect. Remember that the Admonymous account is associated with a Google user account, so one can’t game the system by signing up multiple times and generating multiple links to share with different people. At most, one can generate a link for each Google account they have access to. If you’re still concerned, examine their Admonymous name and user name: do they make sense, or do they look suspicious?</li>
+<li>Avoid referring to specific incidents that can identify you. If you refer to a specific event, make sure that other people were there who could also get the Admonymous feedback and deliver a similar admonition. “You were not sensitive in bed last night” will not preserve your anonymity even if you don’t sign it.
+<li>Be aware of your writing style. If there are stylistic identifying marks in your admonition, they can expose you.</li>
+<li>Focus on facts, not judgments or feelings. It’s great to discuss feelings in an open conversation, but doing so anonymously is limiting on the one hand, and can expose you, on the other. By focusing on facts you simultaneously make sure your admonition is good, and protect your anonymity.</li>
+</ul>
+
+{% else %}{% if "faq" in topic %}
+
+<h1>Frequently Asked Questions</h1>
+
+<p>
+<b>Do I have to sign up to use the site?</b>
+<br/>
+No. You have to sign up if you want to get your own URL and receive admonitions, but you can admonish others without signing in.
+</p>
+
+<p>
+<b>Why do you ask me to sign in using my Google account?</b>
+<br/>
+This is done purely for authentication, and uses an external authentication through Google so we never get access to your Google credentials. By verifying that you have a real Google account and associating it with your Admonymous account, we prevent potential site abuse (one person signing up multiple times).
+</p>
+
+<p>
+<b>Where should I put my Admonymous URL?</b>
+<br/>
+Everywhere it can be seen by many people who have some interaction with you. The goal is not only to announce your URL and give them the ability to anonymously admonish and admire you, but also to provide them with a guarantee of anonymity, which is why the URL should be public. In the digital world, using your personal web page, posting on your favorite social network, or adding it to your email signature are useful ways of publishing it. In the physical world, you can print stickers, posters, or wear a shirt with your URL on it. Make sure you’re not fooling yourself by posting the URL somewhere nobody will see it but telling yourself that you have done all you can.
+</p>
+
+<p>
+<b>I’m afraid people will abuse the site and use it to hurt me.</b>
+<br/>
+Putting yourself on the receiving end of anonymous admonition can certainly make you vulnerable. Read our suggestions for receiving admonition to make sure you know how to prevent and deal with badmonitions.
+</p>
+
+<p>
+<b>I’m afraid of being identified.</b>
+<br/>
+See our suggestions for successfully maintaining anonymity.
+</p>
+
+<p>
+<b>I don’t want people to tell me things anonymously!</b>
+<br/>
+That’s fine. If you like, you can still use our site to give admonition to others, or just amuse yourself reading our suggestions.
+</p>
+
+<p>
+<b>What about positive feedback?</b>
+<br/>
+Certainly! That’s very important. Admonymous means “Anonymous admonition and admiration”. Don’t forget to admire!
+</p>
+
+{% else %}
+Unknown topic.
+{% endif %}
+{% endif %}
+{% endif %}
+{% endif %}
+{% endif %}
+
+{% endblock %}
+
