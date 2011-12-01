@@ -19,13 +19,20 @@ return false;
 
 {% if not topic %}
 
+<h1>A Crash Course on Anonymous Admonition and Admiration</h1>
+
+<p>Welcome! Admonition is a sensitive matter, and anonymous admonition even more so, for both the deliverer and the recipient. When properly done, it can be a very positive, powerful tool, and this crash course is here to help you use it as such. Your time is valuable, so this course is short, and focuses on important suggestions related to giving and receiving anonymous admonitions and using this site constructively.</p>
+
 {% for current_topic in topic_list %}
-<p><a href="/crash_course?{{ current_topic.name }}" onClick="return popup(this, '{{ current_topic.description }}')">{{ current_topic.description }}</a></p>
+<p><a href="#{{ current_topic.name }}"</a>{{ current_topic.description }}</a></p>
+<!-- onClick="return popup(this, '{{ current_topic.description }}')">{{ current_topic.description }}</a></p> -->
 {% endfor %}
 
-{% else %}{% if "giving" in topic %}
+{% endif %}
 
-<h1>Giving admonition</h1>
+{% if not topic or "giving" in topic %}
+
+<a name="giving"><h2>Giving admonition</h2></a>
 
 <p>The mask of anonymity is a strong protection. It gives you the power to deliver information without worrying about harsh responses. This makes it easy to abuse. Here are a few suggestions for making sure you deliver admonitions, not badmonitions:</p>
 
@@ -41,9 +48,13 @@ return false;
   <li>Be aware of your power. Place yourself in the recipient’s shoes and imagine how you would feel if you were the one to receive the admonition that you just wrote.</li>
 </ul>
 
-{% else %}{% if "receiving" in topic %}
+<br/>
 
-<h1>Receiving admonition</h1>
+{% endif %}
+
+{% if not topic or "receiving" in topic %}
+
+<a name="receiving"><h2>Receiving admonition</h2></a>
 
 <p>It can be scary to let the world tell you anything, in your (virtual) face, without fearing any consequences. You don’t know what to anticipate - such is the nature of blind spots. Perhaps you fear that some people might abuse their power and try to hurt you. Perhaps you’re not quite ready for completely unconstrained admonition. Here are a few suggestions on receiving admonition:</p>
 
@@ -56,9 +67,13 @@ return false;
 <li>Be explicit about what kind of admonition you’re interested in receiving. It’s perfectly reasonable to focus on specific areas. If you feel you’re not ready for admonitions in certain areas, mentioning the areas where you do want admonition will help focus people and give you more control over the process.</li>
 </ul>
 
-{% else %}{% if "anonymity" in topic %}
+<br/>
 
-<h1>Maintaining anonymity</h1>
+{% endif %}
+
+{% if not topic or "anonymity" in topic %}
+
+<a name="anonymity"><h2>Maintaining anonymity</h2></a>
 
 <p>Are you afraid of being recognized despite the lack of identification on your admonition? Here are a few suggestions on making sure your anonymity is preserved.</p>
 
@@ -68,9 +83,13 @@ return false;
 <li>Focus on facts, not judgments or feelings. It’s great to discuss feelings in an open conversation, but doing so anonymously is limiting on the one hand, and can expose you, on the other. By focusing on facts you simultaneously make sure your admonition is good, and protect your anonymity.</li>
 </ul>
 
-{% else %}{% if "faq" in topic %}
+<br/>
 
-<h1>Frequently Asked Questions</h1>
+{% endif %}
+
+{% if not topic or "faq" in topic %}
+
+<a name="faq"><h2>Frequently Asked Questions</h2></a>
 
 <p>
 <b>Do I have to sign up to use the site?</b>
@@ -114,12 +133,8 @@ That’s fine. If you like, you can still use our site to give admonition to oth
 Certainly! That’s very important. Admonymous means “Anonymous admonition and admiration”. Don’t forget to admire!
 </p>
 
-{% else %}
-Unknown topic.
-{% endif %}
-{% endif %}
-{% endif %}
-{% endif %}
+<br/>
+
 {% endif %}
 
 {% endblock %}

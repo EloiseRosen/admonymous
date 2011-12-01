@@ -30,7 +30,7 @@
 
     <p>Admonymous allows everyone to anonymously admonish and admire their friends and acquaintances. All you need to do in order to let other admonish and admire you is sign up (link?) and publish the admonition link where people can see it: in your email signature, on notes posted in places where you spend much time, on your shirt. By becoming aware of your blind spots, you will be able to address them.</p>
 
-    <p>Giving and receiving good admonitions is not easy. There are many good books about constructive criticism, dealing with criticism, and communication in difficult situations. If you want a quick introduction to some basic principles, try our <a href="/crash_course">crash course in anonymous admonition and admiration</a>.</p>
+    <p>Giving and receiving good admonitions is not easy. There are many good books about constructive criticism, dealing with criticism, and communication in difficult situations. If you want a quick introduction to some basic principles, try our <a href="/crash_course" target="_new">crash course in anonymous admonition and admiration</a>.</p>
     
     
   </div>
@@ -39,7 +39,7 @@
     <div style="height:78px;padding:19px 32px 0 22px;">
       <div style="float:left;">
         <h2>{{ user.name }} ({{ user.username }})</h2>
-        <a href="/">My admonitions</a> | <a href="/{{ user.username }}">My public page</a> | <a href="/print" target="_new">Print an announcement</a> | <a href="/crash_course">A crash course in anonymous admonition and admiration</a> | <a href="{{ logout_url }}">Log out</a>
+        <a href="/">My admonitions</a> | <a href="/{{ user.username }}">My public page</a> | <a href="/print" target="_new">Print an announcement</a> | <a href="/crash_course" target="_new">A crash course in anonymous admonition and admiration</a> | <a href="{{ logout_url }}">Log out</a>
       </div>
 
       <div style="float:right;text-align:right;">
@@ -52,7 +52,7 @@
     <div style="padding:0 22px;">
       
       <div class="alert-message block-message info">
-	If you don't feel right at home receiving direct admonition, please take a minute to read <a href="/crash_course?receiving">some suggestions</a>.
+	If you don't feel right at home receiving direct admonition, please take a minute to read <a href="/crash_course?receiving" target="_new">some suggestions</a>.
       </div>
       {% if responses %}
         {% for response in responses %}
