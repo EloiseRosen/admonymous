@@ -8,6 +8,12 @@
         window.location = "/delete_username";
       }
     });
+    $('input#delete-response').click(function() {
+      if (confirm('Delete admonition?')) {
+        var response_id = parseInt($(this).attr("response_id"));
+        window.location = "/delete_admonition?id="+response_id;
+      }
+    });
   });
 </script>
 
@@ -57,6 +63,9 @@
       {% if responses %}
         {% for response in responses %}
           <div class="response">
+
+	    <input type="submit" class="btn danger" name="submit" value="Delete admonition" id="delete-response" response_id="{{ response.response_id }}" style="float:right;margin:23px 20px 0 0;"/>
+
             <div class="response-meta">
               <span style="font-weight:bold;">{{ response.create_date|date:"l n.j.y" }}</span><br/>
               <span style="color:#666;">{{ response.author|default_if_none:"anonymous" }}</span>

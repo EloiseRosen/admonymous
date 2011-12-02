@@ -16,7 +16,7 @@ class User(db.Model):
   create_date = db.DateTimeProperty(auto_now_add=True)
   update_date = db.DateTimeProperty(auto_now=True)
   # image = db.BlobProperty
-  
+
 class Response(db.Model):
   user = db.ReferenceProperty(User)
   create_date = db.DateTimeProperty(auto_now_add=True)
@@ -58,6 +58,8 @@ class HomeHandler(webapp.RequestHandler):
       if len(responses) == per_page+1:
         responses.pop()
         template_values['newer_offset'] = offset + per_page
+      for response in responses:
+          response.response_id = response.key().id()
       template_values['responses'] = responses
     else:
       template_values = {'login_url':users.create_login_url('/')}
@@ -169,6 +171,35 @@ class PrintablePageHandler(webapp.RequestHandler):
     page = template.render(path, template_values, debug=(True if 'local' in self.request.host_url or users.is_current_user_admin() else False))
     self.response.out.write(page)
     
+class DeleteResponseHandler(webapp.RequestHandler):
+    def get(self):
+        google_account = users.get_current_user()
+        if google_account:
+            user = User.all().filter('google_account', google_account).get()
+            if not user:
+                self.response.out.write("Must be logged in to delete response.")
+                return
+            args = self.request.arguments()
+            response_id = self.request.get('id','')
+            try:
+                response_id = long(response_id)
+            except InputError:
+                self.response.out.write("Bad response id.")
+                return
+            r = Response.get(db.Key.from_path('Response', response_id))
+            if not r:
+                self.redirect('/')
+                return
+            if not r.user.key().id() == user.key().id():
+                self.response.out.write("Not allowed to delete.")
+                return
+            r.delete()
+            #self.response.out.write("Response deleted.")
+            #return
+            self.redirect('/')
+        else:
+            self.redirect('/')
+
 class DeleteUserHandler(webapp.RequestHandler):
   def get(self):
     google_account = users.get_current_user()
@@ -188,6 +219,7 @@ def main():
                                           ('/print', PrintablePageHandler),
                                           ('/crash_course', CrashCourseHandler),
                                           ('/delete_username', DeleteUserHandler),
+                                          ('/delete_admonition', DeleteResponseHandler),
                                           ('/([0-9a-zA-Z_\-]+)', UserPageHandler)],
                                          debug=True)
     util.run_wsgi_app(application)
