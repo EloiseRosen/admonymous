@@ -177,21 +177,24 @@ class DeleteResponseHandler(webapp.RequestHandler):
         if google_account:
             user = User.all().filter('google_account', google_account).get()
             if not user:
-                self.response.out.write("Must be logged in to delete response.")
+                self.redirect('/')
+                #self.response.out.write("Must be logged in to delete response.")
                 return
             args = self.request.arguments()
             response_id = self.request.get('id','')
             try:
                 response_id = long(response_id)
             except InputError:
-                self.response.out.write("Bad response id.")
+                self.redirect('/')
+                #self.response.out.write("Bad response id.")
                 return
             r = Response.get(db.Key.from_path('Response', response_id))
             if not r:
                 self.redirect('/')
                 return
             if not r.user.key().id() == user.key().id():
-                self.response.out.write("Not allowed to delete.")
+                self.redirect('/')
+                #self.response.out.write("Not allowed to delete.")
                 return
             r.delete()
             #self.response.out.write("Response deleted.")
