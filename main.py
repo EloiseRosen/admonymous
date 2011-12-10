@@ -17,6 +17,14 @@ class User(db.Model):
   update_date = db.DateTimeProperty(auto_now=True)
   # image = db.BlobProperty
 
+  @classmethod
+  def get_current(cls):
+    google_account = users.get_current_user()
+    if not google_account:
+      return
+    user = cls.all().filter('google_account', google_account).get()
+    return user
+
 class Response(db.Model):
   user = db.ReferenceProperty(User)
   create_date = db.DateTimeProperty(auto_now_add=True)
@@ -48,7 +56,6 @@ class HomeHandler(webapp.RequestHandler):
         user = User()
       template_values = {
         'user':user,
-        'logout_url':users.create_logout_url('/')
       }
       per_page = get_bounded_int_value(self.request.get('per_page'), PER_PAGE, 1, MAX_PER_PAGE)
       offset = get_bounded_int_value(self.request.get('offset'), 0, 0)
@@ -62,7 +69,7 @@ class HomeHandler(webapp.RequestHandler):
           response.response_id = response.key().id()
       template_values['responses'] = responses
     else:
-      template_values = {'login_url':users.create_login_url('/')}
+      template_values = {}
     path = 'templates/home.html'
     page = template.render(path, template_values, debug=(True if 'local' in self.request.host_url or users.is_current_user_admin() else False))
     self.response.out.write(page)
@@ -147,14 +154,15 @@ class UserPageHandler(webapp.RequestHandler):
     self.response.out.write(page)
 
 class CrashCourseHandler(webapp.RequestHandler):
-    def get(self):
-        args = self.request.arguments()
-        all_topics = [{'name': 'giving', 'description': 'Giving admonition'},
-                      {'name': 'receiving', 'description': 'Receiving admonition'},
-                      {'name': 'anonymity', 'description': 'Maintaining anonymity'},
-                      {'name': 'faq', 'description': 'Frequently Asked Questions'}]
-        page = template.render('templates/crash_course.html', {'topic':args, 'topic_list': all_topics})
-        self.response.out.write(page)
+  def get(self):
+    user = User.get_current()
+    args = self.request.arguments()
+    all_topics = [{'name': 'giving', 'description': 'Giving admonition'},
+                  {'name': 'receiving', 'description': 'Receiving admonition'},
+                  {'name': 'anonymity', 'description': 'Maintaining anonymity'},
+                  {'name': 'faq', 'description': 'Frequently Asked Questions'}]
+    page = template.render('templates/crash_course.html', {'user':user, 'topic':args, 'topic_list': all_topics})
+    self.response.out.write(page)
 
 class PrintablePageHandler(webapp.RequestHandler):
   def get(self):
@@ -203,6 +211,18 @@ class DeleteResponseHandler(webapp.RequestHandler):
         else:
             self.redirect('/')
 
+class LogoutHandler(webapp.RequestHandler):
+  def get(self):
+    self.redirect(users.create_logout_url('/'))
+
+class LoginHandler(webapp.RequestHandler):
+  def get(self):
+    google_account = users.get_current_user()
+    if google_account:
+      self.redirect('/')
+    else:
+      self.redirect(users.create_login_url('/'))
+
 class DeleteUserHandler(webapp.RequestHandler):
   def get(self):
     google_account = users.get_current_user()
@@ -219,6 +239,8 @@ class DeleteUserHandler(webapp.RequestHandler):
 
 def main():
     application = webapp.WSGIApplication([('/', HomeHandler), 
+                                          ('/logout', LogoutHandler),
+                                          ('/login', LoginHandler),
                                           ('/print', PrintablePageHandler),
                                           ('/crash_course', CrashCourseHandler),
                                           ('/delete_username', DeleteUserHandler),

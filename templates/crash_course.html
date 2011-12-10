@@ -1,5 +1,8 @@
 {% extends "base.html" %}
+
 {% block content %}
+
+{% include "topmenu.html" %}
 
 <SCRIPT TYPE="text/javascript">
 <!--
@@ -17,6 +20,7 @@ return false;
 //-->
 </SCRIPT>
 
+<div style="width:600px;">
 {% if not topic %}
 
 <h1>A Crash Course on Anonymous Admonition and Admiration</h1>
@@ -32,6 +36,7 @@ return false;
 
 {% if not topic or "giving" in topic %}
 
+<br/>
 <a name="giving"><h2>Giving admonition</h2></a>
 
 <p>The mask of anonymity is a strong protection. It gives you the power to deliver information without worrying about harsh responses. This makes it easy to abuse. Here are a few suggestions for making sure you deliver admonitions, not badmonitions:</p>
@@ -136,6 +141,7 @@ Certainly! That’s very important. Admonymous means “Anonymous admonition and
 <br/>
 
 {% endif %}
+</div>
 
 {% endblock %}
 

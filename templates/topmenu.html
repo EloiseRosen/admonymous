@@ -1,0 +1,21 @@
+{% block topmenu %}
+
+<div style="height:78px;padding:19px 32px 0 22px;">
+  <div style="float:left;">
+    {% if user.username %}
+    <h2>{{ user.name }} ({{ user.username }})</h2>
+    <a href="/">My admonitions</a> | <a href="/{{ user.username }}">My public page</a> | <a href="/print" target="_new">Print an announcement</a> | <a href="/crash_course">Crash course</a> | <a href="/logout">Log out</a>
+    {% else %}
+    <h2>Admonymous</h2>
+    <a href="/">Home</a> | <a href="/crash_course">Crash course</a> | <a href="/login">Log in</a>
+    {% endif %}
+  </div>
+  
+  <div style="float:right;text-align:right;">
+    <img src="/static/images/admonymous_small.png" width="137" height="68"/>
+  </div>
+</div>
+
+<hr/>
+
+{% endblock %}
