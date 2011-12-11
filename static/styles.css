@@ -14,3 +14,8 @@ h1 {
 strong {
     color: #ff801f
 }
+ul li { color:#ff801f; }
+ul li th1 { color:navy; }
+ul li span { color: #202020; }
+th1 {
+}
