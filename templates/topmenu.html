@@ -4,16 +4,16 @@
   <div style="float:left;">
     {% if user.username %}
     <h2>{{ user.name }} ({{ user.username }})</h2>
-    <a href="/">My admonitions</a> | <a href="/{{ user.username }}">My public page</a> | <a href="/print" target="_new">Print an announcement</a> | <a href="/crash_course">Crash course</a> | <a href="/logout">Log out</a>
+    <a href="/">My admonitions</a> | <a href="/{{ user.username }}">My public page</a> | <a href="/print" target="_new">Print an announcement</a> | <a href="/crash_course">Crash course</a> | <a href="/contact">Contact</a> | <a href="/logout">Log out</a>
     {% else %}
     <h2>Admonymous</h2>
-    <a href="/">Home</a> | <a href="/crash_course">Crash course</a> | <a href="/login">Log in</a>
+    <a href="/">Home</a> | <a href="/crash_course">Crash course</a> | <a href="/contact">Contact</a> | <a href="/login">Log in</a>
     {% endif %}
   </div>
   
   <div style="float:right;text-align:right;">
     <!-- <img src="/static/images/admonymous_small.png" width="137" height="68"/> -->
-    <img src="/static/images/Admonymous_logo.png" width="360" height="50"/>
+    <img src="/static/images/Admonymous_logo.png" width="288" height="40"/>
   </div>
 </div>
 

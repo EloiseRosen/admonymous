@@ -118,6 +118,12 @@ class HomeHandler(webapp.RequestHandler):
 class UserPageHandler(webapp.RequestHandler):
   def get(self, username):
     target_user = User.all().filter('username', username).get()
+    if (username == 'admonymous') and not target_user:
+      admonymous_user = User(username = 'admonymous',
+                             name = 'Admonymous',
+                             google_account = None)
+      admonymous_user.put()
+      target_user = admonymous_user
     template_values = {
       'target_user':target_user, 
       'user':User.all().filter('google_account', users.get_current_user()).get(), 
@@ -142,7 +148,11 @@ class UserPageHandler(webapp.RequestHandler):
     body = self.request.get('body')
     response = Response(body=textile.textile(body), author=author, user=target_user, revealed=True)
     response.put()
-    notification = email.EmailMessage(sender='Admonymous <notify@admonymous.com>', to=target_user.google_account.email(), subject='%s left you a response on Admonymous' % ('Someone' if not author else author))
+    if target_user.google_account:
+      target_email = target_user.google_account.email()
+    elif target_user.username == 'admonymous':
+      target_email = 'yonidonner@gmail.com'
+    notification = email.EmailMessage(sender='Admonymous <notify@admonymous.com>', to=target_email, subject='%s left you a response on Admonymous' % ('Someone' if not author else author))
     notification.render_and_send('notification', {
       'target_user':target_user,
       'author':None if author == 'anonymous' else author,
@@ -151,6 +161,12 @@ class UserPageHandler(webapp.RequestHandler):
     })
     path = 'templates/user.html'
     page = template.render(path, template_values, debug=(True if 'local' in self.request.host_url or users.is_current_user_admin() else False))
+    self.response.out.write(page)
+
+class ContactHandler(webapp.RequestHandler):
+  def get(self):
+    user = User.get_current()
+    page = template.render('templates/contact.html', {'user':user})
     self.response.out.write(page)
 
 class CrashCourseHandler(webapp.RequestHandler):
@@ -241,6 +257,7 @@ def main():
     application = webapp.WSGIApplication([('/', HomeHandler), 
                                           ('/logout', LogoutHandler),
                                           ('/login', LoginHandler),
+                                          ('/contact', ContactHandler),
                                           ('/print', PrintablePageHandler),
                                           ('/crash_course', CrashCourseHandler),
                                           ('/delete_username', DeleteUserHandler),
