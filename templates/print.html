@@ -1,8 +1,12 @@
 {% extends "base.html" %}
+
+{% block top_menu %}
+{% endblock %}
+
 {% block content %}
-  <div style="width:400px;margin-left:auto;margin-right:auto;padding:30px 0 30px 0;">
+  <div style="width:400px;margin-left:auto;margin-right:auto;padding:130px 0 30px 0;text-align:center;">
     <h1>How's my driving?</h1>
-    <p>Leave me feedback at <strong>http://www.admonymous.com/{{ user.username }}</strong></p>
-    <p><img src="https://chart.googleapis.com/chart?cht=qr&chs=300x300&chl={{ user.encoded_url }}"/></p>
+    <h2>Leave me feedback at: <strong>admonymous.com/{{ user.username }}</strong></h2>
+    <p><img src="https://chart.googleapis.com/chart?cht=qr&chs=300x300&chl={{ user.encoded_url }}" style="margin:0 auto 0 auto;"/></p>
   </div>
 {% endblock %}

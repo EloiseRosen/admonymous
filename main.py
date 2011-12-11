@@ -138,7 +138,7 @@ class UserPageHandler(webapp.RequestHandler):
     from helpers.textile import textile
     target_user = User.all().filter('username', username).get()
     template_values = {
-      'target_user':target_user, 
+      'target_user':target_user,
       'user':User.all().filter('google_account', users.get_current_user()).get(), 
       'logout_url':users.create_logout_url('/'), 
       'login_url':users.create_login_url('/'),

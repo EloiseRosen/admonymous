@@ -1,8 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
 
-{% include "topmenu.html" %}
-
 <div style="padding:19px 32px 0 22px;">
   {% if target_user %}
     
@@ -11,19 +9,32 @@
         Admonition successfully submitted!
       </div>
     {% else %}
-      <div class="alert-message block-message info">
-	If you haven't yet, please take a minute to go through <a href="/crash_course?giving" target="_new">some suggestions</a> for giving admonition. You might also want to read some suggestions for <a href="/crash_course?anonymity" target="_new">maintaining anonymity</a>. Then, constructively admonish {{ target_user.name }}:
+      <div class="well" style="font-weight:bold;font-size:25px;line-height:30px;color:#999;">
+        {% if not user %}
+          <div style="width:41%;float:right;font-size:15px;">
+            This website lets you leave anonymous admonition and admiration for your friends and coworkers. If you would like a page of your own, <a href="/login" class="nodecorate">log in with your Google account</a>.
+          </div>
+        {% endif %}
+        Constructively admonish {{ target_user.name }}:
+        <div style="clear:both;"></div>
       </div>
     {% endif %}
 
   <form action="/{{ target_user.username }}" method="post" accept-charset="utf-8">
     <fieldset style="padding-top:0px;">
       <textarea name="body" style="width:100%;height:200px;padding:20px;margin-top:0px;"></textarea><br/><br/>
+      
+      <div class="alert-message block-message info" style="text-align:center;">
+	If you haven't yet, please take a minute to go through some suggestions for <a href="/crash_course?giving" target="_giving">giving admonition</a> and <a href="/crash_course?anonymity" target="_anon">maintaining anonymity</a>.
+      </div>
+      
       <div style="text-align:right;width:100%;">
         <input type="text" name="author" value="anonymous" style="height:29px;"/> <input class="btn primary" type="submit" value="Submit">
       </div>
     </fieldset>
   </form>
+  
+  
 
   {% else %}
     <div class="alert-message error" style="width:510px;">

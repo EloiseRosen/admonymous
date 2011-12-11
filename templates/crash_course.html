@@ -2,8 +2,6 @@
 
 {% block content %}
 
-{% include "topmenu.html" %}
-
 <SCRIPT TYPE="text/javascript">
 <!--
 function popup(mylink, windowname)
@@ -20,17 +18,20 @@ return false;
 //-->
 </SCRIPT>
 
-<div style="width:600px;">
+<div style="width:600px;margin:30px auto 0 auto;">
 {% if not topic %}
 
 <h1>A Crash Course on Anonymous Admonition and Admiration</h1>
 
 <p>Welcome! Admonition is a sensitive matter, and anonymous admonition even more so, for both the deliverer and the recipient. When properly done, it can be a very positive, powerful tool, and this crash course is here to help you use it as such. Your time is valuable, so this course is short, and focuses on important suggestions related to giving and receiving anonymous admonitions and using this site constructively.</p>
 
-{% for current_topic in topic_list %}
-<p><a href="#{{ current_topic.name }}"</a>{{ current_topic.description }}</a></p>
-<!-- onClick="return popup(this, '{{ current_topic.description }}')">{{ current_topic.description }}</a></p> -->
-{% endfor %}
+<ul>
+  {% for current_topic in topic_list %}
+  <li><a href="#{{ current_topic.name }}"</a>{{ current_topic.description }}</a></li>
+  <!-- onClick="return popup(this, '{{ current_topic.description }}')">{{ current_topic.description }}</a></p> -->
+  {% endfor %}
+</ul>
+
 
 {% endif %}
 

@@ -1,4 +1,11 @@
 {% extends "base.html" %}
+
+{% block top_menu %}
+{% if user %}
+  {% include "topmenu.html" %}
+{% endif %}
+{% endblock %}
+
 {% block content %}
 
 <script type="text/javascript" charset="utf-8">
@@ -8,8 +15,8 @@
         window.location = "/delete_username";
       }
     });
-    $('input#delete-response').click(function() {
-      if (confirm('Delete admonition?')) {
+    $('a#delete-response').click(function() {
+      if (confirm('Are you sure you want to delete this admonition?')) {
         var response_id = parseInt($(this).attr("response_id"));
         window.location = "/delete_admonition?id="+response_id;
       }
@@ -17,54 +24,67 @@
   });
 </script>
 
-{% include "topmenu.html" %}
-
 {% if not user %}
 <!-- <h1>Admonymous</h1> -->
 
-  <!-- <div style="width:560px;margin-left:auto;margin-right:auto;padding:40px 0 30px 0;text-align:left;"> -->
-    <img src="/static/images/Admonymous_logo.png"/>
-    <center><h1>Anonymous Admonition and Admiration</h1></center>
-
-    <div style="width:600px; padding:40px 0 30px 0;">
-    <a href="/login" class="btn nodecorate">Log in with your Google account</a>
-    <div style="clear:both;">
-      
+  <div style="padding:40px 0 30px 0;text-align:left;width:980px;margin-left:auto;margin-right:auto;">
+    
+    <img src="/static/images/Admonymous_logo.png" width="983" height="150" style="margin-left:auto;margin-right:auto;"/>
+    <div class="well" style="font-weight:bold;font-size:25px;line-height:30px;color:#999;margin-top:20px;">
+      <a href="/login" class="btn nodecorate primary float-right large">Log in with your Google account</a>
+      This website lets you leave anonymous admonition and admiration for your friends and coworkers. 
     </div>
-    <br/>
-    <p></p>
-    <p></p>
     
-    <p><strong>Admonition</strong> (plural admonitions): Gentle or friendly reproof; counseling against fault or oversight; warning.</p>
-
-    <p>People have faults. Generally, faults are not easy to amend, but once aware of them, we can work towards their resolution. Hardest to resolve are faults that we are blind to, so we depend on others to hold up the mirror of admonition and help us become aware of them.</p>
-
-    <p>Admonitions are rare in most societies, while unconstructive criticism and insincere flattery are common. Most people recoil from reproving others, since they do not want to risk reactions of anger or hate. Admonitions are beneficial to both giver and recipient, but the inability to deliver them without risking an adverse reaction significantly limits their use.</p>
-
-    <p>Admonymous allows everyone to anonymously admonish and admire their friends and acquaintances. All you need to do in order to let other admonish and admire you is sign up (link?) and publish the admonition link where people can see it: in your email signature, on notes posted in places where you spend much time, on your shirt. By becoming aware of your blind spots, you will be able to address them.</p>
-
-    <p>Giving and receiving good admonitions is not easy. There are many good books about constructive criticism, dealing with criticism, and communication in difficult situations. If you want a quick introduction to some basic principles, try our <a href="/crash_course" target="_new">crash course in anonymous admonition and admiration</a>.</p>
+    <div style="font-weight:bold;color:00438a;font-size:20px;">
+      <div class="span5">
+        &ldquo;The sound you make when you enjoy your food is adorable, but probably not working for you during business lunches.&rdquo;
+      </div>
+      <div class="span5">
+        &ldquo;You&rsquo;ve said so many times that it's important to you not to skip Physics class, but you weren&rsquo;t there again today &ndash; this is just a heads up to keep you thinking!&rdquo;
+      </div>
+      <div class="span4">
+        &ldquo;I really appreciated your new approach to keeping the group on track today, stick with it!&rdquo;
+      </div>
+    </div>
     
+    <div style="clear:both;height:25px;"></div>
+    <hr/>
+    
+    <div style="padding:0px 20px 20px 20px;clear:both;">
+      <h3><strong>Admonition</strong> (plural admonitions): Gentle or friendly reproof; counseling against fault or oversight; warning.</h3>
+      <br/>
+
+      <p>People have faults. Generally, faults are not easy to amend, but once aware of them, we can work towards their resolution. Hardest to resolve are faults that we are blind to, so we depend on others to hold up the mirror of admonition and help us become aware of them.</p>
+
+      <p>Admonitions are rare in most societies, while unconstructive criticism and insincere flattery are common. Most people recoil from reproving others, since they do not want to risk reactions of anger or hate. Admonitions are beneficial to both giver and recipient, but the inability to deliver them without risking an adverse reaction significantly limits their use.</p>
+
+      <p>Admonymous allows everyone to anonymously admonish and admire their friends and acquaintances. All you need to do in order to let others admonish and admire you is <a href="/login">sign up</a> and publish the admonition link where people can see it: in your email signature, on notes posted in places where you spend a lot of time, on your shirt. By becoming aware of your blind spots, you will be able to address them.</p>
+
+      <p>Giving and receiving good admonitions is not easy. There are many good books about constructive criticism, dealing with criticism, and communication in difficult situations. If you want a quick introduction to some basic principles, try our <a href="/crash_course" target="_new">crash course in anonymous admonition and admiration</a>.</p>
+    </div>
+    
+    <div style="text-align:center;padding:0 0 50px 0;">
+      <a href="/">Home</a> | <a href="/crash_course">Crash course</a> | <a href="/contact">Contact</a> | <a href="/login">Log in</a>
+    </div>
     
   </div>
 {% else %}
     {% if user.username %}
     <div style="padding:0 22px;">
       
-      <div class="alert-message block-message info">
+      <div class="alert-message block-message info" style="text-align:center;">
 	If you don't feel right at home receiving direct admonition, please take a minute to read <a href="/crash_course?receiving" target="_new">some suggestions</a>.
       </div>
       {% if responses %}
         {% for response in responses %}
           <div class="response">
 
-	    <input type="submit" class="btn danger" name="submit" value="Delete admonition" id="delete-response" response_id="{{ response.response_id }}" style="float:right;margin:23px 20px 0 0;"/>
-
             <div class="response-meta">
               <span style="font-weight:bold;">{{ response.create_date|date:"l n.j.y" }}</span><br/>
               <span style="color:#666;">{{ response.author|default_if_none:"anonymous" }}</span>
             </div>
             <div class="response-body">
+              <a class="btn small" id="delete-response" response_id="{{ response.response_id }}" style="float:right;margin:0 0 10px 10px;">delete </a>
               {{ response.body }}
             </div>
           </div>
@@ -120,7 +140,7 @@
         {% endif %}
         <input name="name" value="{{ user.name }}" style="height:29px;"/>
         <input name="username" value="{{ user.username }}" style="height:29px;"/>
-        <input type="submit" class="btn primary" name="submit" value="Change" id="submit"/>
+        <input type="submit" class="btn secondary" name="submit" value="Change" id="submit"/>
   	  </fieldset>
     </form>
     
@@ -139,11 +159,10 @@
           <input name="name" value="{{ user.name|default_if_none:"" }}" style="height:29px;"/>
           <label for="username">Pick a username</label>
           <input name="username" value="{{ user.username|default_if_none:"" }}" style="height:29px;"/><br/><br/>
-          <input type="submit" class="btn primary" name="submit" value="Begin" id="submit" style="float:right;"/>
+          <input type="submit" class="btn secondary" name="submit" value="Begin" id="submit" style="float:right;"/>
     	  </fieldset>
       </form>
     </div>
-  
     
   {% endif %}
   
