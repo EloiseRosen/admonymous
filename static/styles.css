@@ -19,3 +19,33 @@ ul li th1 { color:navy; }
 ul li span { color: #202020; }
 th1 {
 }
+div#example-admonitions {
+	color:00438a;
+	font: 20px Georgia, "Times New Roman", Times, serif;
+	line-height: 29px;
+}
+div#signup-bar {
+	font-weight:bold;
+	font-size:25px;
+	line-height:30px;
+	color:#999;
+	margin:30px 0 50px 0;
+}
+div#definition {
+	padding:20px 20px 50px 20px;
+	clear:both;
+}
+div#user-message, div#user-message p {
+	color:00438a;
+	font: 20px Georgia, "Times New Roman", Times, serif;
+	line-height: 24px;	
+}
+div#sig {
+	text-align:right;
+	font-style: italic;
+}
+div#user-page-welcome {
+	width:51%;
+	float:right;
+	font-size:14px;
+}

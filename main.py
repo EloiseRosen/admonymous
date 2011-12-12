@@ -15,7 +15,12 @@ class User(db.Model):
   google_account = db.UserProperty(auto_current_user_add=True)
   create_date = db.DateTimeProperty(auto_now_add=True)
   update_date = db.DateTimeProperty(auto_now=True)
+  message = db.TextProperty()
   # image = db.BlobProperty
+  
+  def message_html(self):
+    from helpers.textile import textile
+    return textile.textile(self.message)
 
   @classmethod
   def get_current(cls):
@@ -75,10 +80,18 @@ class HomeHandler(webapp.RequestHandler):
     self.response.out.write(page)
 
   def post(self):
+    
+    def namify(inStr, spacechar='_'):
+      import re
+      aslug = re.sub('[^\w\s-]', '', inStr).strip().lower()
+      aslug = re.sub('\s+', spacechar, aslug)
+      return aslug
+    
     google_account = users.get_current_user()
     if google_account:
       user = User.all().filter('google_account', google_account).get()
-      user_with_username_key = User.all(keys_only=True).filter('username', self.request.get('username')).get()
+      username = namify(self.request.get('username'))
+      user_with_username_key = User.all(keys_only=True).filter('username', username).get()
       if user:
         username_taken = True if user_with_username_key != None and user_with_username_key != user.key() else False
       else:
@@ -89,15 +102,16 @@ class HomeHandler(webapp.RequestHandler):
           success = True
         else:
           success = None
-        user.username = self.request.get('username')
+        user.username = username
       else:
         success = False
       user.name = self.request.get('name')
+      user.message = self.request.get('message')
       user.put()
       template_values = {
         'user':user,
         'success':success,
-        'username_taken':self.request.get('username') if username_taken else False,
+        'username_taken':username if username_taken else False,
         'logout_url':users.create_logout_url('/')
       }
       per_page = get_bounded_int_value(self.request.get('per_page'), PER_PAGE, 1, MAX_PER_PAGE)
