@@ -213,7 +213,7 @@ class PrintablePageHandler(webapp.RequestHandler):
       user = User.all().filter('google_account', google_account).get()
       if not user:
         self.redirect('/')
-      encoded_url = urllib.quote("http://www.admonymous.com/%s"%user)
+      encoded_url = urllib.quote("http://www.admonymous.com/%s"%(user.username))
       template_values = {'user':user, 'encoded_url':encoded_url}
     else:
       self.redirect('/')
