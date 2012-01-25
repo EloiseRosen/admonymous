@@ -4,10 +4,21 @@ from helpers import email
 from google.appengine.ext import webapp, db
 from google.appengine.ext.webapp import util, template
 from google.appengine.api import users
-import datetime, urllib
+import datetime, urllib, logging
 
 PER_PAGE = 10
 MAX_PER_PAGE = 100
+
+# def redirect(handler_method):
+#   def redirect_if_needed(self, *args, **kwargs):
+#     if 'www' not in self.request.referrer and 'admonymous' in self.request.referrer:
+#       try:
+#         self.redirect(re.sub('admonymous.com', 'www.admonymous.com', self.request.referrer))
+#       except:
+#         handler_method(self, *args, **kwargs)
+#     else:
+#       handler_method(self, *args, **kwargs)
+#   return redirect_if_needed
 
 class User(db.Model):
   username = db.StringProperty()
@@ -53,6 +64,7 @@ def get_bounded_int_value(s, default, lower_bound = None, upper_bound = None):
   return value
 
 class HomeHandler(webapp.RequestHandler):
+  # @redirect
   def get(self):
     google_account = users.get_current_user()
     if google_account:
