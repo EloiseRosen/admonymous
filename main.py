@@ -6,6 +6,8 @@ from google.appengine.ext.webapp import util, template
 from google.appengine.api import users
 import datetime, urllib, logging
 
+from django.utils import encoding
+
 PER_PAGE = 10
 MAX_PER_PAGE = 100
 
@@ -172,7 +174,7 @@ class UserPageHandler(webapp.RequestHandler):
     }
     author=self.request.get('author')
     body = self.request.get('body')
-    response = Response(body=textile.textile(body), author=author, user=target_user, revealed=True)
+    response = Response(body=encoding.force_unicode(textile.textile(encoding.smart_str(body), encoding='utf-8', output='utf-8')), author=author, user=target_user, revealed=True)
     response.put()
     if target_user.google_account:
       target_email = target_user.google_account.email()
