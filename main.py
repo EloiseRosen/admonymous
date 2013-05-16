@@ -174,19 +174,28 @@ class UserPageHandler(webapp.RequestHandler):
     }
     author=self.request.get('author')
     body = self.request.get('body')
-    response = Response(body=encoding.force_unicode(textile.textile(encoding.smart_str(body), encoding='utf-8', output='utf-8')), author=author, user=target_user, revealed=True)
-    response.put()
-    if target_user.google_account:
-      target_email = target_user.google_account.email()
-    elif target_user.username == 'admonymous':
-      target_email = 'yonidonner@gmail.com'
-    notification = email.EmailMessage(sender='Admonymous <notify@admonymous.com>', to=target_email, subject='%s left you a response on Admonymous' % ('Someone' if not author else author))
-    notification.render_and_send('notification', {
-      'target_user':target_user,
-      'author':None if author == 'anonymous' else author,
-      'body_html':response.body,
-      'body_txt':body
-    })
+    if self.request.get('email') != '':
+      notification = email.EmailMessage(sender='Admonymous <notify@admonymous.com>', to='nevin.freeman@gmail.com', subject='BOT left someone a response on Admonymous')
+      notification.render_and_send('notification', {
+        'target_user':target_user,
+        'author':None if author == 'anonymous' else author,
+        'body_html':response.body,
+        'body_txt':body
+      })
+    else:
+      response = Response(body=encoding.force_unicode(textile.textile(encoding.smart_str(body), encoding='utf-8', output='utf-8')), author=author, user=target_user, revealed=True)
+      response.put()
+      if target_user.google_account:
+        target_email = target_user.google_account.email()
+      elif target_user.username == 'admonymous':
+        target_email = 'yonidonner@gmail.com'
+      notification = email.EmailMessage(sender='Admonymous <notify@admonymous.com>', to=target_email, subject='%s left you a response on Admonymous' % ('Someone' if not author else author))
+      notification.render_and_send('notification', {
+        'target_user':target_user,
+        'author':None if author == 'anonymous' else author,
+        'body_html':response.body,
+        'body_txt':body
+      })
     path = 'templates/user.html'
     page = template.render(path, template_values, debug=(True if 'local' in self.request.host_url or users.is_current_user_admin() else False))
     self.response.out.write(page)

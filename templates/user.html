@@ -27,7 +27,12 @@
       </div>
     {% endif %}
 
+  <style>
+    input#email{display:none;}
+  </style>
+
   <form action="/{{ target_user.username }}" method="post" accept-charset="utf-8">
+    <input type="text" name="email" value="" id="email"/>
     <fieldset style="padding-top:0px;">
       <textarea name="body" style="width:100%;height:200px;padding:20px;margin-top:0px;"></textarea><br/><br/>
       
