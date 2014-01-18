@@ -9,6 +9,7 @@
         Admonition successfully submitted!
       </div>
     {% else %}
+			<h1 style="text-align:center;">Leave a message for {{ target_user.name }}</h1>
       <div class="well" id="user-message">
         {% if target_user.message %}
         {{ target_user.message_html }}
@@ -34,14 +35,11 @@
   <form action="/{{ target_user.username }}" method="post" accept-charset="utf-8">
     <input type="text" name="email" value="" id="email"/>
     <fieldset style="padding-top:0px;">
+			<p>Enter your message here. If you haven't yet, please take a minute to go through some suggestions for <a href="/crash_course?giving" target="_giving">giving admonition</a> and <a href="/crash_course?anonymity" target="_anon">maintaining anonymity</a>.</p>
       <textarea name="body" style="width:100%;height:200px;padding:20px;margin-top:0px;"></textarea><br/><br/>
       
-      <div class="alert-message block-message info" style="text-align:center;">
-	If you haven't yet, please take a minute to go through some suggestions for <a href="/crash_course?giving" target="_giving">giving admonition</a> and <a href="/crash_course?anonymity" target="_anon">maintaining anonymity</a>.
-      </div>
-      
       <div style="text-align:right;width:100%;">
-        <input type="text" name="author" value="anonymous" style="height:29px;"/> <input class="btn primary" type="submit" value="Submit">
+        Enter your name here, or leave it anonymous: <input type="text" name="author" value="anonymous" style="height:29px;"/> <input class="btn primary" type="submit" value="Submit">
       </div>
     </fieldset>
   </form>

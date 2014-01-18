@@ -42,6 +42,10 @@ class User(db.Model):
       return
     user = cls.all().filter('google_account', google_account).get()
     return user
+  
+  def first_name(self):
+    import re
+    return re.split(self.name, ' ')[0]
 
 class Response(db.Model):
   user = db.ReferenceProperty(User)
@@ -153,7 +157,8 @@ class UserPageHandler(webapp.RequestHandler):
       admonymous_user.put()
       target_user = admonymous_user
     template_values = {
-      'target_user':target_user, 
+      'target_user':target_user,
+      'target_user_first_name':target_user.first_name,
       'user':User.all().filter('google_account', users.get_current_user()).get(), 
       'logout_url':users.create_logout_url('/'), 
       'login_url':users.create_login_url('/')
