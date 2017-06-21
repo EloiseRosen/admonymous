@@ -33,7 +33,7 @@
     
     <div id="signup-bar" class="well">
       <a href="/login" target="_blank" class="btn nodecorate primary float-right large">Log in with your Google account</a>
-      This website lets you leave anonymous admonition and admiration for your friends and coworkers. 
+      Leave anonymous admonition and admiration for your friends and coworkers.
     </div>
     
     <div id="example-admonitions">
@@ -55,17 +55,15 @@
       <h3><strong>Admonition</strong> (plural admonitions): Gentle or friendly reproof; counseling against fault or oversight; warning.</h3>
       <br/>
 
-      <p>People have faults. Generally, faults are not easy to amend, but once aware of them, we can work towards their resolution. Hardest to resolve are faults that we are blind to, so we depend on others to hold up the mirror of admonition and help us become aware of them.</p>
+      <p>Constructive criticism is beneficial to both giver and recipient, but the fact that people often can't deliver negative (and sometimes positive!) feedback without social risk discourages the behavior.</p>
 
-      <p>Admonitions are rare in most societies, while unconstructive criticism and insincere flattery are common. Most people recoil from reproving others, since they do not want to risk reactions of anger or hate. Admonitions are beneficial to both giver and recipient, but the inability to deliver them without risking an adverse reaction significantly limits their use.</p>
+      <p>Admonymous allows people to anonymously admonish and admire their friends and acquaintances. All you need to do in order to let others admonish and admire you is <a href="/login" target="_blank">sign up</a> and publish the admonition link where people can see it, like in your email signature or on your Faceboook account. By becoming aware of your blind spots, you will be more able to address them.</p>
 
-      <p>Admonymous allows everyone to anonymously admonish and admire their friends and acquaintances. All you need to do in order to let others admonish and admire you is <a href="/login" target="_blank">sign up</a> and publish the admonition link where people can see it: in your email signature, on notes posted in places where you spend a lot of time, on your shirt. By becoming aware of your blind spots, you will be able to address them.</p>
-
-      <p>Giving and receiving good admonitions is not easy. There are many good books about constructive criticism, dealing with criticism, and communication in difficult situations. If you want a quick introduction to some basic principles, try our <a href="/crash_course" target="_new">crash course in anonymous admonition and admiration</a>.</p>
+      <p>Giving and receiving good feedback isn't easy. For some suggestions, take a look at our <a href="/suggestions" target="_new">Suggestions and FAQ</a>.</p>
     </div>
     
     <div style="text-align:center;padding:0 0 50px 0;">
-      <a href="/">Home</a> | <a href="/crash_course">Crash course</a> | <a href="/contact">Contact</a> | <a href="http://blog.admonymous.com/">Blog</a> | <a href="/login" target="_blank">Log in</a>
+      <a href="/">Home</a> | <a href="/suggestions">Suggestions and FAQ</a> | <a href="/contact">Contact</a> | <a href="/login" target="_blank">Log in</a>
     </div>
     
   </div>
@@ -88,14 +86,17 @@
           </div>
         {% endfor %}
         <div class="alert-message block-message info" style="text-align:center;">
-  	If you don't feel right at home receiving direct admonition, please take a minute to read <a href="/crash_course?receiving" target="_new">some suggestions</a>.
+  	If you don't feel right at home receiving direct admonition, please take a minute to read <a href="/suggestions?receiving" target="_new">some suggestions</a>.
         </div>
       {% else %}
         <h1>Welcome!</h1>
         <div class="alert-message block-message info">
-          You don't have any admonitions yet. To get some action, you can <a href="/print" target="_new">print out</a> a special poster and post it up on your office door or wherever your friends will see it. If you are really hardcore, you can put your URL on a T-shirt! Your URL is:<br/>
+          You don't have any admonitions yet. <br/>
+
+          Your URL is:<br/>
           <pre style="margin:10px 0;"><a href="http://www.admonymous.com/{{ user.username }}">http://www.admonymous.com/{{ user.username }}</a></pre>
-          You can also ask for feedback on the internet: <a target="twitter" href="http://twitter.com/home?status=Soliciting constructive admonitions: http://www.admonymous.com/{{ user.username }}">Solicit constructive admonitions via Twitter</a>
+
+          You can <a href="/print" target="_new">print this</a>, or ask for feedback online: <a target="twitter" href="http://twitter.com/home?status=Soliciting constructive criticism: http://www.admonymous.com/{{ user.username }}">Solicit constructive criticism via Twitter</a>
         </div>
       {% endif %}
     </div>
@@ -162,7 +163,7 @@
           <input name="name" value="{{ user.name|default_if_none:"" }}" style="height:29px;"/><br/>
           <label for="username">Pick a username</label>
           <input name="username" value="{{ user.username|default_if_none:"" }}" style="height:29px;"/><br/><br/>
-          <label for="message">Write a brief note to people about what kind of feedback you want (optional):</label>
+          <label for="message">Write a brief note to tell people what kind of feedback you want (optional):</label>
           <textarea name="message" style="width:502px;height:75px;margin:0 0 4px 0;">{{ user.message|default_if_none:"" }}</textarea><br/><br/>
           <input type="submit" class="btn secondary" name="submit" value="Begin" id="submit" style="float:right;"/>
     	  </fieldset>
