@@ -19,7 +19,7 @@
         {% else %}
         {% if not user %}
          <div id="user-page-welcome">
-           This website lets you leave anonymous admonition and admiration for your friends and coworkers. If you would like a page of your own, <a href="/login" target="_blank" class="nodecorate">log in with your Google account</a>.
+           Leave anonymous admonition and admiration for your friends and coworkers. If you would like a page of your own, <a href="/login" target="_blank" class="nodecorate">log in with your Google account</a>.
          </div>
          {% endif %}
         Constructively admonish {{ target_user.name }}:
@@ -35,7 +35,7 @@
   <form action="/{{ target_user.username }}" method="post" accept-charset="utf-8">
     <input type="text" name="email" value="" id="email"/>
     <fieldset style="padding-top:0px;">
-			<p>Enter your message here. If you haven't yet, please take a minute to go through some suggestions for <a href="/crash_course?giving" target="_giving">giving admonition</a> and <a href="/crash_course?anonymity" target="_anon">maintaining anonymity</a>.</p>
+			<p>Enter your message here. If you haven't yet, please take a minute to go through some suggestions for <a href="/suggestions?giving" target="_giving">giving admonition</a> and <a href="/suggestions?anonymity" target="_anon">maintaining anonymity</a>.</p>
       <textarea name="body" style="width:100%;height:200px;padding:20px;margin-top:0px;"></textarea><br/><br/>
       
       <div style="text-align:right;width:100%;">
@@ -48,7 +48,7 @@
 
   {% else %}
     <div class="alert-message error" style="width:510px;">
-      Oops! We couldn't find a user with that username. They might have changed it.
+      Oops! We couldn't find a user with that username.
     </div>
   {% endif %}
 </div>

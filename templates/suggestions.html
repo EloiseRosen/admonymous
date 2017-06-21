@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<SCRIPT TYPE="text/javascript">
+<!--
+function popup(mylink, windowname)
+{
+if (! window.focus)return true;
+var href;
+if (typeof(mylink) == 'string')
+   href=mylink;
+else
+   href=mylink.href;
+window.open(href, windowname, 'width=400,height=200,scrollbars=yes');
+return false;
+}
+//-->
+</SCRIPT>
+
+<div style="width:600px;margin:30px auto 0 auto;">
+{% if not topic %}
+
+<h1>Suggestions and FAQ</h1>
+
+<ul>
+  {% for current_topic in topic_list %}
+  <li><a href="#{{ current_topic.name }}"</a>{{ current_topic.description }}</a></li>
+  <!-- onClick="return popup(this, '{{ current_topic.description }}')">{{ current_topic.description }}</a></p> -->
+  {% endfor %}
+</ul>
+
+
+{% endif %}
+
+{% if not topic or "giving" in topic %}
+
+<br/>
+<a name="giving"><h2>Giving admonition</h2></a>
+
+<p>Some suggestions for ensuring your feedback is constructive:</p>
+
+<ul>
+   <li><th1>Be gentle.</th1> <span>As long as you get the message across, there is no need to be harsh. Receiving even nicely worded feedback can be difficult. Put yourself in the recipient’s shoes and imagine how you would feel if you were on the receiving end of the message you just wrote.</span></li>
+  <li><th1>Be specific.</th1> <span>Provide as many details as you can without deanonymizing yourself. Bad: “Your meetings are wasting people’s time.” Good: “When you arrange meetings, sometimes they are ineffective because there isn't a clear purpose and you don’t stop people who go off-topic.”</span></li>
+  <li><th1>Admire.</th1> <span>Just as the recipient may need your feedback to change behavior that bothers you, they may not be aware of the good aspects of their behavior, and even if they are not blind to them you can encourage them further by giving explicit praise. Use Admonymous to encourage positive behavior as much as you use it to change negative behavior.</span></li>
+   <li><th1>Pick actionable things.</th1> <span>Make sure the recipient can act upon your admonition. Even better, provide some suggested courses of action. Bad: "You're annoying." Good: "Some habits you have are annoying. It would help if you made fewer clicking noises, and let others speak more in conversations." </span></li>
+  <li><th1>Don't abuse.</th1> <span>It's easy to be mean when anonymity protects you. Remember that the goal is helping the recipient, not making them feel bad.</span></li>
+</ul>
+
+<br/>
+
+{% endif %}
+
+{% if not topic or "receiving" in topic %}
+
+<a name="receiving"><h2>Receiving admonition</h2></a>
+
+<p>It can be scary to let the world tell you anything. Here are a few suggestions on receiving criticism:</p>
+
+<ul>
+<li><th1>Be explicit about what kind of feedback you’re interested in receiving.</th1> <span>If there are specific topics you're most interested in, update the message on your profile page to reflect that.</span></li>
+<li><th1>Try not to be defensive.</th1> <span>Admonitions may sound like accusations, but they are merely pieces of information, brought to your attention so you can make positive changes in the future. If you feel angry or defensive, observe those emotions, let them subside a bit and ask yourself: could this be true, after all? You may accept or reject suggestions, but it's good to consider them in good faith first. </span></li>
+<li><th1>Be concrete.</th1> <span>Find actions you can do to address the admonition. Being aware of the problem is important, but it is even more useful to make a concrete plan.</span></li>
+<li><th1>Ignore badmonitions.</th1> <span>Not everything that bothers someone else is an actual issue that you should fix. A person might abuse the site to try to hurt you, or not recognize when a problem is within them, not you.</span></li>
+</ul>
+
+<br/>
+
+{% endif %}
+
+{% if not topic or "anonymity" in topic %}
+
+<a name="anonymity"><h2>Maintaining anonymity</h2></a>
+
+<p>Concerned about maintaining anonymity? Here are a few suggestions:</p>
+
+<ul>
+<li><th1>Make sure the Admonymous link you followed was probably seen by many other people.</th1> <span>A link from a Facebook post or personal website was likely seen by many. A link given to you personally is a bit more suspect.</span></li>
+<li><th1>Avoid referring to specific incidents that can identify you.</th1> <span>If you refer to a specific event, make sure that other people were there who could also have seen the Admonymous link and given similar feedback. “You were not sensitive in bed last night” will not preserve your anonymity even if you don’t sign it.
+<li><th1>Be aware of your writing style.</th1> <span>Your writing may have unique traits that would suggest to the reader that they were written by you.</span></li>
+</ul>
+
+<br/>
+
+{% endif %}
+
+{% if not topic or "faq" in topic %}
+
+<a name="faq"><h2>Frequently Asked Questions</h2></a>
+
+<p>
+<strong>Do I have to sign up to use the site?</strong>
+<br/>
+No. You have to sign up if you want to get your own URL and receive admonitions, but you can admonish others without signing in.
+</p>
+
+<p>
+<strong>Why do you ask me to sign in using my Google account?</strong>
+<br/>
+This is done purely for authentication, and uses an external authentication through Google so we never get access to your Google credentials. By verifying that you have a real Google account and associating it with your Admonymous account, we discourage potential site abuse (one person signing up multiple times).
+</p>
+
+<p>
+<strong>Where should I put my Admonymous URL?</strong>
+<br/>
+Anywhere it can be seen by many people who have some interaction with you. The goal is not only to announce your URL and give them the ability to anonymously admonish and admire you, but also to provide them with an assurance of anonymity, which is why the URL should be public. Consider posting the link on your personal website, including it in your email signature, or putting it on your Facebook account.
+</p>
+
+<p>
+<strong>I’m afraid people will abuse the site and use it to hurt me.</strong>
+<br/>
+Putting yourself on the receiving end of anonymous feedback can certainly make you vulnerable. Read our suggestions for receiving admonition above.
+</p>
+
+<p>
+<strong>I’m afraid of being identified.</strong>
+<br/>
+See our suggestions for successfully maintaining anonymity.
+</p>
+
+<p>
+<strong>I don’t want people to tell me things anonymously!</strong>
+<br/>
+That’s fine. If you like, you can still use our site to give admonition to others. If you want face-to-face admonition, simply ask for it. That's not what Admonymous is for.
+</p>
+
+<p>
+<strong>What about giving positive feedback?</strong>
+<br/>
+Yes! Admonymous means “anonymous admonition and admiration”. Don’t forget to admire!
+</p>
+
+<br/>
+
+{% endif %}
+</div>
+
+{% endblock %}
+

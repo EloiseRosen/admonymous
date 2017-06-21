@@ -211,7 +211,7 @@ class ContactHandler(webapp.RequestHandler):
     page = template.render('templates/contact.html', {'user':user})
     self.response.out.write(page)
 
-class CrashCourseHandler(webapp.RequestHandler):
+class SuggestionsHandler(webapp.RequestHandler):
   def get(self):
     user = User.get_current()
     args = self.request.arguments()
@@ -219,7 +219,7 @@ class CrashCourseHandler(webapp.RequestHandler):
                   {'name': 'receiving', 'description': 'Receiving admonition'},
                   {'name': 'anonymity', 'description': 'Maintaining anonymity'},
                   {'name': 'faq', 'description': 'Frequently Asked Questions'}]
-    page = template.render('templates/crash_course.html', {'user':user, 'topic':args, 'topic_list': all_topics})
+    page = template.render('templates/suggestions.html', {'user':user, 'topic':args, 'topic_list': all_topics})
     self.response.out.write(page)
 
 class PrintablePageHandler(webapp.RequestHandler):
@@ -301,7 +301,7 @@ def main():
                                           ('/login', LoginHandler),
                                           ('/contact', ContactHandler),
                                           ('/print', PrintablePageHandler),
-                                          ('/crash_course', CrashCourseHandler),
+                                          ('/suggestions', SuggestionsHandler),
                                           ('/delete_username', DeleteUserHandler),
                                           ('/delete_admonition', DeleteResponseHandler),
                                           ('/([0-9a-zA-Z_\-]+)', UserPageHandler)],
