@@ -96,7 +96,7 @@
           Your URL is:<br/>
           <pre style="margin:10px 0;"><a href="http://www.admonymous.com/{{ user.username }}">http://www.admonymous.com/{{ user.username }}</a></pre>
 
-          You can <a href="/print" target="_new">print this</a>, or ask for feedback online: <a target="twitter" href="http://twitter.com/home?status=Soliciting constructive criticism: http://www.admonymous.com/{{ user.username }}">Solicit constructive criticism via Twitter</a>
+          You can print <a href="/print" target="_new">this announcement</a>, or ask for feedback online: <a target="twitter" href="http://twitter.com/home?status=Soliciting constructive criticism: http://www.admonymous.com/{{ user.username }}">Solicit constructive criticism via Twitter</a>
         </div>
       {% endif %}
     </div>
@@ -107,13 +107,13 @@
     {% if newer_offset or older_offset %}
     <div class="pagination" style="padding:0 20px;">
       <ul>
-        <li class="prev{% if not older_offset %} disabled{% endif %}"><a href="#">&larr; Previous</a></li>
+        <li class="prev{% if not older_offset %} disabled{% endif %}"><a href="?offset={{ older_offset }}">&larr; Previous</a></li>
         {# <li class="active"><a href="#">1</a></li> #}
         {# <li><a href="#">2</a></li> #}
         {# <li><a href="#">3</a></li> #}
         {# <li><a href="#">4</a></li> #}
         {# <li><a href="#">5</a></li> #}
-        <li class="next{% if not newer_offset %} disabled{% endif %}"><a href="#">Next &rarr;</a></li>
+        <li class="next{% if not newer_offset %} disabled{% endif %}"><a href="?offset={{ newer_offset }}">Next &rarr;</a></li>
       </ul>
     </div>
     {% else %}
