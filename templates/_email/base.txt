@@ -1,6 +1,6 @@
 {% block header %}
 ---------------------------------------------------------------
- Admonymous.com -- admire or admonish your friends anonymously.
+ Admonymous.co -- admire or admonish your friends anonymously.
 ---------------------------------------------------------------
 {% endblock %}
 {% block content %}
@@ -9,5 +9,5 @@
 --
 {% endblock %}
 {% block small_print %}
-http://www.admonymous.com
+http://www.admonymous.co
 {% endblock %}
