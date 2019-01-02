@@ -15,7 +15,7 @@ MAX_PER_PAGE = 100
 #   def redirect_if_needed(self, *args, **kwargs):
 #     if 'www' not in self.request.referrer and 'admonymous' in self.request.referrer:
 #       try:
-#         self.redirect(re.sub('admonymous.co', 'www.admonymous.co', self.request.referrer))
+#         self.redirect(re.sub('admonymous.com', 'www.admonymous.com', self.request.referrer))
 #       except:
 #         handler_method(self, *args, **kwargs)
 #     else:
@@ -180,7 +180,7 @@ class UserPageHandler(webapp.RequestHandler):
     author=self.request.get('author')
     body = self.request.get('body')
     if self.request.get('email') != '':
-      notification = email.EmailMessage(sender='Admonymous <notify@admonymous.co>', to='nevin.freeman@gmail.com', subject='BOT left someone a response on Admonymous')
+      notification = email.EmailMessage(sender='Admonymous <notify@admonymous.com>', to='nevin.freeman@gmail.com', subject='BOT left someone a response on Admonymous')
       notification.render_and_send('notification', {
         'target_user':target_user,
         'author':None if author == 'anonymous' else author,
@@ -194,7 +194,7 @@ class UserPageHandler(webapp.RequestHandler):
         target_email = target_user.google_account.email()
       elif target_user.username == 'admonymous':
         target_email = 'yonidonner@gmail.com'
-      notification = email.EmailMessage(sender='Admonymous <notify@admonymous.co>', to=target_email, subject='%s left you a response on Admonymous' % ('Someone' if not author else author))
+      notification = email.EmailMessage(sender='Admonymous <notify@admonymous.com>', to=target_email, subject='%s left you a response on Admonymous' % ('Someone' if not author else author))
       notification.render_and_send('notification', {
         'target_user':target_user,
         'author':None if author == 'anonymous' else author,
@@ -229,7 +229,7 @@ class PrintablePageHandler(webapp.RequestHandler):
       user = User.all().filter('google_account', google_account).get()
       if not user:
         self.redirect('/')
-      encoded_url = urllib.quote("http://www.admonymous.co/%s"%(user.username))
+      encoded_url = urllib.quote("http://www.admonymous.com/%s"%(user.username))
       template_values = {'user':user, 'encoded_url':encoded_url}
     else:
       self.redirect('/')
