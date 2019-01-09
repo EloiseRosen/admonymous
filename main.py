@@ -180,7 +180,7 @@ class UserPageHandler(webapp.RequestHandler):
     author=self.request.get('author')
     body = self.request.get('body')
     if self.request.get('email') != '':
-      notification = email.EmailMessage(sender='Admonymous <notify@admonymous.com>', to='nevin.freeman@gmail.com', subject='BOT left someone a response on Admonymous')
+      notification = email.EmailMessage(sender='Admonymous <notify@admonymous.com>', to='eloise.rosen@gmail.com', subject='BOT left someone a response on Admonymous')
       notification.render_and_send('notification', {
         'target_user':target_user,
         'author':None if author == 'anonymous' else author,
@@ -193,7 +193,7 @@ class UserPageHandler(webapp.RequestHandler):
       if target_user.google_account:
         target_email = target_user.google_account.email()
       elif target_user.username == 'admonymous':
-        target_email = 'yonidonner@gmail.com'
+        target_email = 'eloise.rosen@gmail.com'
       notification = email.EmailMessage(sender='Admonymous <notify@admonymous.com>', to=target_email, subject='%s left you a response on Admonymous' % ('Someone' if not author else author))
       notification.render_and_send('notification', {
         'target_user':target_user,
