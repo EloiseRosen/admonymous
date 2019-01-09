@@ -15,7 +15,7 @@ class EmailMessage(mail.EmailMessage):
       'link_style':'style="text-decoration:none;color:#000099;"',
     }
     template_values.update(additional_template_values)
-    template_values['host_url'] = ('http://localhost:8080' if DEBUG else 'http://www.admonymous.co')
+    template_values['host_url'] = ('http://localhost:8080' if DEBUG else 'https://www.admonymous.co')
     path_html = os.path.join(base_dir.base_dir(), 'templates', '_email', template_name+'.html')
     path_txt = os.path.join(base_dir.base_dir(), 'templates', '_email', template_name+'.txt')
     self.html = template.render(path_html, template_values, debug=False)
@@ -42,7 +42,7 @@ class EmailMessage(mail.EmailMessage):
       'link_style':'style="text-decoration:none;color:#000099;"',
     }
     template_values.update(additional_template_values)
-    template_values['host_url'] = ('http://localhost:8080' if DEBUG else 'http://www.admonymous.co')
+    template_values['host_url'] = ('http://localhost:8080' if DEBUG else 'https://www.admonymous.co')
     path_html = os.path.join(base_dir.base_dir(), 'templates', '_email', template_name+'.html')
     path_txt = os.path.join(base_dir.base_dir(), 'templates', '_email', template_name+'.txt')
     return {'html':template.render(path_html, template_values, debug=False), 'txt':template.render(path_txt, template_values, debug=False)}

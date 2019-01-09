@@ -9,5 +9,5 @@
 --
 {% endblock %}
 {% block small_print %}
-http://www.admonymous.co
+https://www.admonymous.co
 {% endblock %}
