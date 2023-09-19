@@ -194,13 +194,15 @@ class UserPageHandler(webapp.RequestHandler):
         target_email = target_user.google_account.email()
       elif target_user.username == 'admonymous':
         target_email = 'eloise.rosen@gmail.com'
-      notification = email.EmailMessage(sender='Admonymous <notifications@admonymous.co>', to=target_email, subject='%s left you a response on Admonymous' % ('Someone' if not author else author))
-      notification.render_and_send('notification', {
-        'target_user':target_user,
-        'author':None if author == 'anonymous' else author,
-        'body_html':response.body,
-        'body_txt':body
-      })
+        
+      if response.body:
+        notification = email.EmailMessage(sender='Admonymous <notifications@admonymous.co>', to=target_email, subject='%s left you a response on Admonymous' % ('Someone' if not author else author))
+        notification.render_and_send('notification', {
+          'target_user':target_user,
+          'author':None if author == 'anonymous' else author,
+          'body_html':response.body,
+          'body_txt':body
+        })
     path = 'templates/user.html'
     page = template.render(path, template_values, debug=(True if 'local' in self.request.host_url or users.is_current_user_admin() else False))
     self.response.out.write(page)
