@@ -8,4 +8,5 @@ Hi{% if target_user.name %} {{ target_user.name }}{% endif %},
 	{{ body_txt }}
 
 Click here to see all of your responses: {{ host_url }}
+If you'd like to help cover Admonymous' hosting fees, you can donate here: https://www.buymeacoffee.com/eloiserosen
 {% endblock %}
