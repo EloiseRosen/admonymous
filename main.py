@@ -4,23 +4,15 @@ from helpers import email
 from google.appengine.ext import webapp, db
 from google.appengine.ext.webapp import util, template
 from google.appengine.api import users
-import datetime, urllib.request, urllib.parse, urllib.error, logging
+import datetime
+import urllib.request, urllib.parse, urllib.error
+import logging
 
 from django.utils import encoding
 
 PER_PAGE = 10
 MAX_PER_PAGE = 100
 
-# def redirect(handler_method):
-#   def redirect_if_needed(self, *args, **kwargs):
-#     if 'www' not in self.request.referrer and 'admonymous' in self.request.referrer:
-#       try:
-#         self.redirect(re.sub('admonymous.co', 'www.admonymous.co', self.request.referrer))
-#       except:
-#         handler_method(self, *args, **kwargs)
-#     else:
-#       handler_method(self, *args, **kwargs)
-#   return redirect_if_needed
 
 class User(db.Model):
   username = db.StringProperty()
@@ -29,7 +21,6 @@ class User(db.Model):
   create_date = db.DateTimeProperty(auto_now_add=True)
   update_date = db.DateTimeProperty(auto_now=True)
   message = db.TextProperty()
-  # image = db.BlobProperty
   
   def message_html(self):
     from helpers.textile import textile
@@ -70,7 +61,6 @@ def get_bounded_int_value(s, default, lower_bound = None, upper_bound = None):
   return value
 
 class HomeHandler(webapp.RequestHandler):
-  # @redirect
   def get(self):
     google_account = users.get_current_user()
     if google_account:
