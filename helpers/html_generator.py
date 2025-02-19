@@ -52,7 +52,7 @@ def title_escaped_quotes_character_fix(text):
   return text
 
 def scrub_characters(text):
-  return unicodedata.normalize('NFKD', unicode(text)).encode('ascii','xmlcharrefreplace')
+  return unicodedata.normalize('NFKD', str(text)).encode('ascii','xmlcharrefreplace')
   
 def safe_html(text):
   text = re.sub('&(?!amp;)', '&amp;', text)

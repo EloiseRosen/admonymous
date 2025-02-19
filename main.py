@@ -4,7 +4,7 @@ from helpers import email
 from google.appengine.ext import webapp, db
 from google.appengine.ext.webapp import util, template
 from google.appengine.api import users
-import datetime, urllib, logging
+import datetime, urllib.request, urllib.parse, urllib.error, logging
 
 from django.utils import encoding
 
@@ -231,7 +231,7 @@ class PrintablePageHandler(webapp.RequestHandler):
       user = User.all().filter('google_account', google_account).get()
       if not user:
         self.redirect('/')
-      encoded_url = urllib.quote("https://www.admonymous.co/%s"%(user.username))
+      encoded_url = urllib.parse.quote("https://www.admonymous.co/%s"%(user.username))
       template_values = {'user':user, 'encoded_url':encoded_url}
     else:
       self.redirect('/')
@@ -251,7 +251,7 @@ class DeleteResponseHandler(webapp.RequestHandler):
             args = self.request.arguments()
             response_id = self.request.get('id','')
             try:
-                response_id = long(response_id)
+                response_id = int(response_id)
             except InputError:
                 self.redirect('/')
                 #self.response.out.write("Bad response id.")
