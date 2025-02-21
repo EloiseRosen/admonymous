@@ -1,4 +1,4 @@
-{% extends "base.txt" %}
+{% extends "_email/base.txt" %}
 
 {% block content %}
 Hi{% if target_user.name %} {{ target_user.name }}{% endif %},

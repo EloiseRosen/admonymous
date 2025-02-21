@@ -32,7 +32,9 @@
     input#email{display:none;}
   </style>
 
-  <form action="/{{ target_user.username }}" method="post" accept-charset="utf-8">
+
+  <form action="/{{ target_user.username }}/post" method="post" accept-charset="utf-8">
+  {% csrf_token %}
     <input type="text" name="email" value="" id="email"/>
     <fieldset style="padding-top:0px;">
 			<p>Enter your message here. If you haven't yet, please take a minute to go through some suggestions for <a href="/suggestions?giving" target="_giving">giving admonition</a> and <a href="/suggestions?anonymity" target="_anon">maintaining anonymity</a>.</p>

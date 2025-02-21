@@ -1,305 +1,473 @@
 #!/usr/bin/env python
-
-from helpers import email
-from google.appengine.ext import webapp, db
-from google.appengine.ext.webapp import util, template
-from google.appengine.api import users
+"""
+Django, Cloud NDB, Google OAuth 2.0 
+"""
+import sys
+import os
+import re
 import datetime
-import urllib.request, urllib.parse, urllib.error
+import urllib.parse
 import logging
-
-from django.utils import encoding
+import django
+from django.conf import settings
+from django.core.wsgi import get_wsgi_application
+from django.shortcuts import render, redirect
+from django.http import HttpResponse
+from django.urls import path
+from django.urls import reverse
+from google.cloud import ndb
+from google.cloud import secretmanager
+from django.utils.encoding import force_str, smart_str
+from textile import textile
+from helpers import email
+import bleach
+import google_auth_oauthlib.flow
+import requests
 
 PER_PAGE = 10
 MAX_PER_PAGE = 100
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+SCOPES = [
+    "https://www.googleapis.com/auth/userinfo.email",
+    "https://www.googleapis.com/auth/userinfo.profile",
+    "openid"
+]
 
+def get_secret_value(secret_name):
+    """
+    Returns the secret from Secret Manager.
+    """
+    project_id = os.environ.get('GCP_PROJECT_ID', 'YOUR_PROJECT_ID')
+    sm_client = secretmanager.SecretManagerServiceClient()
+    resource_name = f"projects/{project_id}/secrets/{secret_name}/versions/latest"
+    response = sm_client.access_secret_version(name=resource_name)
+    payload = response.payload.data.decode("UTF-8")
+    return payload
 
-class User(db.Model):
-  username = db.StringProperty()
-  name = db.StringProperty()
-  google_account = db.UserProperty(auto_current_user_add=True)
-  create_date = db.DateTimeProperty(auto_now_add=True)
-  update_date = db.DateTimeProperty(auto_now=True)
-  message = db.TextProperty()
-  
-  def message_html(self):
-    from helpers.textile import textile
-    return textile.textile(self.message)
+sendgrid_key_name = os.environ.get('SENDGRID_API_KEY_NAME', 'sendgrid-api-key')
+real_sendgrid_key = get_secret_value(sendgrid_key_name)
+os.environ['SENDGRID_API_KEY'] = real_sendgrid_key
 
-  @classmethod
-  def get_current(cls):
-    google_account = users.get_current_user()
-    if not google_account:
-      return
-    user = cls.all().filter('google_account', google_account).get()
-    return user
-  
-  def first_name(self):
-    import re
-    return re.split(self.name, ' ')[0]
+django_secret_name = os.environ.get('DJANGO_SECRET_KEY_NAME', 'django-secret-key')
+django_secret_key = get_secret_value(django_secret_name)
 
-class Response(db.Model):
-  user = db.ReferenceProperty(User)
-  create_date = db.DateTimeProperty(auto_now_add=True)
-  body = db.TextProperty()
-  author = db.StringProperty()
-  reveal_datetime = db.DateTimeProperty(default=datetime.datetime.now())
-  revealed = db.BooleanProperty(default=False)
+settings.configure(
+    DEBUG=True,
+    SECRET_KEY=django_secret_key,
+    ALLOWED_HOSTS=['*'],
+    ROOT_URLCONF=__name__,
+    INSTALLED_APPS=[
+        'django.contrib.sessions',
+        'django.middleware.common',
+    ],
+    MIDDLEWARE=[
+        'django.middleware.common.CommonMiddleware',
+        'django.middleware.csrf.CsrfViewMiddleware',
+        'django.middleware.clickjacking.XFrameOptionsMiddleware',
+        'django.contrib.sessions.middleware.SessionMiddleware',
+    ],
+    TEMPLATES=[{
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
+        'APP_DIRS': False,
+        'OPTIONS': {},
+    }],
+    WSGI_APPLICATION='main.application',
+    SESSION_ENGINE="django.contrib.sessions.backends.signed_cookies",
+)
 
-def get_bounded_int_value(s, default, lower_bound = None, upper_bound = None):
-  if s:
+django.setup()
+
+client = ndb.Client()
+class User(ndb.Model): 
+    username = ndb.StringProperty()
+    name = ndb.StringProperty()
+    google_account = ndb.StringProperty()
+    create_date = ndb.DateTimeProperty(auto_now_add=True)
+    update_date = ndb.DateTimeProperty(auto_now=True)
+    message = ndb.TextProperty()  # 
+
+    def message_html(self):
+        return self.message or ""
+
+    def first_name(self):
+        if not self.name:
+            return ''
+        return self.name.split(" ", 1)[0]
+
+class Response(ndb.Model):
+    user = ndb.KeyProperty(kind=User)
+    create_date = ndb.DateTimeProperty(auto_now_add=True)
+    body = ndb.TextProperty()
+    author = ndb.StringProperty()
+    reveal_datetime = ndb.DateTimeProperty(auto_now_add=True)
+    revealed = ndb.BooleanProperty(default= False)
+
+def get_bounded_int_value(s, default, lower_bound=None, upper_bound=None):
     try:
-      value = int(s)
-      if lower_bound and value < lower_bound:
-        value = lower_bound
-      if upper_bound and value > upper_bound:
-        value = upper_bound
-    except ValueError:
-      value = default
-  else:
-    value = default
-  return value
+        val = int(s)
+    except (ValueError, TypeError):
+        val = default
+    if lower_bound is not None and val < lower_bound:
+        val = lower_bound
+    if upper_bound is not None and val > upper_bound:
+        val = upper_bound
+    return val
 
-class HomeHandler(webapp.RequestHandler):
-  def get(self):
-    google_account = users.get_current_user()
-    if google_account:
-      user = User.all().filter('google_account', google_account).get()
-      if not user:
-        user = User()
-      template_values = {
-        'user':user,
-      }
-      per_page = get_bounded_int_value(self.request.get('per_page'), PER_PAGE, 1, MAX_PER_PAGE)
-      offset = get_bounded_int_value(self.request.get('offset'), 0, 0)
-      responses = Response.all().filter('user', user).order('-create_date').fetch(limit=per_page+1, offset=offset) if user.is_saved() else []
-      if offset > 0:
-        template_values['older_offset'] = max(0, offset - per_page)
-      if len(responses) == per_page+1:
-        responses.pop()
-        template_values['newer_offset'] = offset + per_page
-      for response in responses:
-          response.response_id = response.key().id()
-      template_values['responses'] = responses
-    else:
-      template_values = {}
-    path = 'templates/home.html'
-    page = template.render(path, template_values, debug=(True if 'local' in self.request.host_url or users.is_current_user_admin() else False))
-    self.response.out.write(page)
+def get_current_user(request):
+    """Return the NDB User object for logged in user (from session)."""
+    user_key_urlsafe = request.session.get('user_key')
+    if not user_key_urlsafe:
+        return None
+    with client.context():
+        key = ndb.Key(urlsafe=user_key_urlsafe)
+        return key.get()
 
-  def post(self):
-    
-    def namify(inStr, spacechar='_'):
-      import re
-      aslug = re.sub('[^\w\s-]', '', inStr).strip().lower()
-      aslug = re.sub('\s+', spacechar, aslug)
-      return aslug
-    
-    google_account = users.get_current_user()
-    if google_account:
-      user = User.all().filter('google_account', google_account).get()
-      username = namify(self.request.get('username'))
-      user_with_username_key = User.all(keys_only=True).filter('username', username).get()
-      if user:
-        username_taken = True if user_with_username_key != None and user_with_username_key != user.key() else False
-      else:
-        username_taken = True if user_with_username_key != None else False
-        user = User()
-      if not username_taken:
-        if user.username:
-          success = True
+def sanitize_user_input(dirty_text):
+    return bleach.clean(dirty_text or "", tags=[], attributes={}, strip=True)  # (tags is for allowing certain tags to stay)
+
+
+def load_oauth_config():
+    client_id_secret_name = os.environ.get('OAUTH_CLIENT_ID_SECRET_NAME', 'my-client-id')
+    client_secret_secret_name = os.environ.get('OAUTH_CLIENT_SECRET_NAME', 'my-client-secret')
+
+    real_client_id = get_secret_value(client_id_secret_name)
+    real_client_secret = get_secret_value(client_secret_secret_name)
+
+    redirect_uris = [
+        "http://localhost:8080/oauth-callback",
+        "https://crockersrules-hrd.appspot.com/oauth-callback",
+        "https://www.admonymous.co/oauth-callback"
+    ]
+
+    config = {
+        "web": {
+            "client_id": real_client_id,
+            "client_secret": real_client_secret,
+            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+            "token_uri": "https://oauth2.googleapis.com/token",
+            "redirect_uris": redirect_uris
+        }
+    }
+    return config
+
+
+def home(request):
+    with client.context():
+        user = get_current_user(request)
+        if not user:
+            return render(request, 'home.html', {})
+        per_page = get_bounded_int_value(request.GET.get('per_page'), PER_PAGE, 1, MAX_PER_PAGE)
+        offset = get_bounded_int_value(request.GET.get('offset'), 0, 0)
+        query = Response.query(Response.user == user.key).order(-Response.create_date)
+        responses = query.fetch(per_page+1, offset=offset)
+        template_values = {'user': user}
+
+        if offset > 0:
+            template_values['older_offset'] = max(0, offset - per_page)
+        if len(responses) == per_page+1:
+            responses.pop()
+            template_values['newer_offset'] = offset + per_page
+
+        for r in responses:
+            r.response_id = r.key.id()
+        template_values['responses'] = responses
+        return render(request, 'home.html', template_values)
+
+def home_post(request):
+    with client.context():
+        user = get_current_user(request)
+        if not user:
+            return render(request, 'home.html', {'login_url': '/login'})
+
+        def namey(inStr, spacechar='_'):
+            aslug = re.sub(r'[^\w\s-]', '', inStr).strip().lower()
+            aslug = re.sub(r'\s+', spacechar, aslug)
+            return aslug
+
+        username_input = request.POST.get('username', '')
+        raw_slug = namey(username_input)
+        username = sanitize_user_input(raw_slug)
+
+        existing = User.query(User.username == username).get()
+        username_taken = False
+        if existing and existing.key != user.key:
+            username_taken = True
+
+        success = None
+        if not username_taken:
+            success = True if user.username else None
+            user.username = username
         else:
-          success = None
-        user.username = username
-      else:
-        success = False
-      user.name = self.request.get('name')
-      user.message = self.request.get('message')
-      user.put()
-      template_values = {
-        'user':user,
-        'success':success,
-        'username_taken':username if username_taken else False,
-        'logout_url':users.create_logout_url('/')
-      }
-      per_page = get_bounded_int_value(self.request.get('per_page'), PER_PAGE, 1, MAX_PER_PAGE)
-      offset = get_bounded_int_value(self.request.get('offset'), 0, 0)
-      responses = Response.all().filter('user', user).order('-create_date').fetch(limit=per_page+1, offset=offset)
-      if offset > 0:
-        template_values['older_offset'] = max(0, offset - per_page)
-      if len(responses) == per_page+1:
-        responses.pop()
-        template_values['newer_offset'] = offset + per_page
-      template_values['responses'] = responses
-    else:
-      template_values = {'login_url':users.create_login_url()}
-    path = 'templates/home.html'
-    page = template.render(path, template_values, debug=(True if 'local' in self.request.host_url or users.is_current_user_admin() else False))
-    self.response.out.write(page)
+            success = False
 
-class UserPageHandler(webapp.RequestHandler):
-  def get(self, username):
-    target_user = User.all().filter('username', username).get()
-    if (username == 'admonymous') and not target_user:
-      admonymous_user = User(username = 'admonymous',
-                             name = 'Admonymous',
-                             google_account = None)
-      admonymous_user.put()
-      target_user = admonymous_user
-    template_values = {
-      'target_user':target_user,
-      'target_user_first_name':target_user.first_name,
-      'user':User.all().filter('google_account', users.get_current_user()).get(), 
-      'logout_url':users.create_logout_url('/'), 
-      'login_url':users.create_login_url('/')
-    }
-    path = 'templates/user.html'
-    page = template.render(path, template_values, debug=(True if 'local' in self.request.host_url or users.is_current_user_admin() else False))
-    self.response.out.write(page)
-    
-  def post(self, username):
-    from helpers.textile import textile
-    target_user = User.all().filter('username', username).get()
-    template_values = {
-      'target_user':target_user,
-      'user':User.all().filter('google_account', users.get_current_user()).get(), 
-      'logout_url':users.create_logout_url('/'), 
-      'login_url':users.create_login_url('/'),
-      'success':True
-    }
-    author=self.request.get('author')
-    body = self.request.get('body')
-    if self.request.get('email') != '':
-      notification = email.EmailMessage(sender='Admonymous <notifications@admonymous.co>', to='eloise.rosen@gmail.com', subject='BOT left someone a response on Admonymous')
-      notification.render_and_send('notification', {
-        'target_user':target_user,
-        'author':None if author == 'anonymous' else author,
-        'body_html':response.body,
-        'body_txt':body
-      })
-    else:
-      response = Response(body=encoding.force_unicode(textile.textile(encoding.smart_str(body), encoding='utf-8', output='utf-8')), author=author, user=target_user, revealed=True)
-      response.put()
-      if target_user.google_account:
-        target_email = target_user.google_account.email()
-      elif target_user.username == 'admonymous':
-        target_email = 'eloise.rosen@gmail.com'
-        
-      if response.body:
-        notification = email.EmailMessage(sender='Admonymous <notifications@admonymous.co>', to=target_email, subject='%s left you a response on Admonymous' % ('Someone' if not author else author))
-        notification.render_and_send('notification', {
-          'target_user':target_user,
-          'author':None if author == 'anonymous' else author,
-          'body_html':response.body,
-          'body_txt':body
+        raw_name = request.POST.get('name', '')
+        user.name = sanitize_user_input(raw_name)
+        user.message = sanitize_user_input(request.POST.get('message', ''))
+        user.put()
+
+        template_values = {
+            'user': user,
+            'success': success,
+            'username_taken': username if username_taken else False
+        }
+
+        per_page = get_bounded_int_value(request.POST.get('per_page'), PER_PAGE, 1, MAX_PER_PAGE)
+        offset = get_bounded_int_value(request.POST.get('offset'), 0, 0)
+        query = Response.query(Response.user == user.key).order(-Response.create_date)
+        responses = query.fetch(per_page+1, offset=offset)
+
+        if offset > 0:
+            template_values['older_offset'] = max(0, offset - per_page)
+        if len(responses) == per_page+1:
+            responses.pop()
+            template_values['newer_offset'] = offset + per_page
+
+        for r in responses:
+            r.response_id = r.key.id()
+        template_values['responses'] = responses
+        return render(request, 'home.html', template_values)
+
+def user_page(request, username):
+    with client.context():
+        target_user = User.query(User.username == username).get()
+        if (username == 'admonymous') and not target_user:
+            target_user = User(username='admonymous', name='Admonymous')
+            target_user.put()
+        current_user = get_current_user(request)
+        return render(request, 'user.html', {
+            'target_user': target_user,
+            'target_user_first_name': target_user.first_name() if target_user else '',
+            'user': current_user
         })
-    path = 'templates/user.html'
-    page = template.render(path, template_values, debug=(True if 'local' in self.request.host_url or users.is_current_user_admin() else False))
-    self.response.out.write(page)
 
-class ContactHandler(webapp.RequestHandler):
-  def get(self):
-    user = User.get_current()
-    page = template.render('templates/contact.html', {'user':user})
-    self.response.out.write(page)
+def user_page_post(request, username):
+    with client.context():
+        target_user = User.query(User.username == username).get()
+        current_user = get_current_user(request)
 
-class SuggestionsHandler(webapp.RequestHandler):
-  def get(self):
-    user = User.get_current()
-    args = self.request.arguments()
-    all_topics = [{'name': 'giving', 'description': 'Giving admonition'},
-                  {'name': 'receiving', 'description': 'Receiving admonition'},
-                  {'name': 'anonymity', 'description': 'Maintaining anonymity'},
-                  {'name': 'faq', 'description': 'Frequently Asked Questions'}]
-    page = template.render('templates/suggestions.html', {'user':user, 'topic':args, 'topic_list': all_topics})
-    self.response.out.write(page)
+        author = sanitize_user_input(request.POST.get('author', 'anonymous'))
+        body_raw = request.POST.get('body', '')
+        emailFlag = request.POST.get('email', '')
 
-class PrintablePageHandler(webapp.RequestHandler):
-  def get(self):
-    google_account = users.get_current_user()
-    if google_account:
-      user = User.all().filter('google_account', google_account).get()
-      if not user:
-        self.redirect('/')
-      encoded_url = urllib.parse.quote("https://www.admonymous.co/%s"%(user.username))
-      template_values = {'user':user, 'encoded_url':encoded_url}
-    else:
-      self.redirect('/')
-    path = 'templates/print.html'
-    page = template.render(path, template_values, debug=(True if 'local' in self.request.host_url or users.is_current_user_admin() else False))
-    self.response.out.write(page)
+        body_stripped = sanitize_user_input(body_raw)
+        processed_body_html = force_str(
+            textile(smart_str(body_stripped))
+        )
+
+        if emailFlag != '':
+            notification = email.EmailMessage(
+                sender='Admonymous <notifications@admonymous.co>',
+                to='eloise.rosen@gmail.com',
+                subject='BOT left someone a response on Admonymous'
+            )
+            notification.render_and_send('notification', {
+                'target_user': target_user,
+                'author': None if author == 'anonymous' else author,
+                'body_html': processed_body_html,
+                'body_txt': body_raw
+            })
+            success = True
+        else:  # normal case
+            response_entity = Response(
+                body=processed_body_html,  # processed_body_html has already been sanitized and textile-ized
+                author=author,
+                user=target_user.key if target_user else None,
+                revealed=True
+            )
+            response_entity.put()
+
+            # send email
+            if target_user and target_user.google_account:
+                target_email = target_user.google_account
+            elif target_user and target_user.username == 'admonymous':
+                target_email = 'eloise.rosen@gmail.com'
+            else:
+                target_email = None
+
+            if target_email and processed_body_html:
+                subj = '%s left you a response on Admonymous' % ('Someone' if author == 'anonymous' else author)
+                notification = email.EmailMessage(
+                    sender='Admonymous <notifications@admonymous.co>',
+                    to=target_email,
+                    subject=subj
+                )
+                notification.render_and_send('notification', {
+                    'target_user': target_user,
+                    'author': None if author == 'anonymous' else author,
+                    'body_html': processed_body_html,
+                    'body_txt': body_raw
+                })
+            success = True
+
+        template_values = {
+            'target_user': target_user,
+            'user': current_user,
+            'success': success
+        }
+        return render(request, 'user.html', template_values)
+
+def contact(request):
+    with client.context():
+        user = get_current_user(request)
+        return render(request, 'contact.html', {'user': user})
+
+def suggestions(request):
+    with client.context():
+        user = get_current_user(request)
+        args = request.GET.dict()
+        all_topics = [
+            {'name': 'giving', 'description': 'Giving admonition'},
+            {'name': 'receiving', 'description': 'Receiving admonition'},
+            {'name': 'anonymity', 'description': 'Maintaining anonymity'},
+            {'name': 'faq', 'description': 'Frequently Asked Questions'},
+        ]
+        return render(request, 'suggestions.html', {
+            'user': user,
+            'topic': args.keys(),
+            'topic_list': all_topics
+        })
+
+def printable(request): # TODO
+    with client.context():
+        user = get_current_user(request)
+        if not user:
+            return redirect('/')
+        encoded_url = urllib.parse.quote(f"https://www.admonymous.co/{user.username}")
+        return render(request, 'print.html', {'user': user, 'encoded_url': encoded_url})
+
+def delete_response(request):
+    with client.context():
+        user = get_current_user(request)
+        if not user:
+            return redirect('/')
+        resp_id = request.GET.get('id')
+        if not resp_id:
+            return redirect('/')
+        try:
+            resp_id = int(resp_id)
+        except ValueError:
+            return redirect('/')
+        resp_key = ndb.Key(Response, resp_id)
+        resp = resp_key.get()
+        if not resp or resp.user != user.key:
+            return redirect('/')
+        resp.key.delete()
+        return redirect('/')
+
+def logout_view(request):
+    request.session.flush()
+    return redirect('/')
+
+def delete_user(request):
+    with client.context():
+        user = get_current_user(request)
+        if not user:
+            return redirect('/')
+        user_resps = Response.query(Response.user == user.key).fetch()
+        for r in user_resps:
+            r.key.delete()
+        user.key.delete()
+        request.session.flush()
+        return redirect('/')
+
+
+# Google OAuth 2.0 login flow
+def login_view(request):
+    config = load_oauth_config()
+    flow = google_auth_oauthlib.flow.Flow.from_client_config(config, scopes=SCOPES)
     
-class DeleteResponseHandler(webapp.RequestHandler):
-    def get(self):
-        google_account = users.get_current_user()
-        if google_account:
-            user = User.all().filter('google_account', google_account).get()
-            if not user:
-                self.redirect('/')
-                #self.response.out.write("Must be logged in to delete response.")
-                return
-            args = self.request.arguments()
-            response_id = self.request.get('id','')
-            try:
-                response_id = int(response_id)
-            except InputError:
-                self.redirect('/')
-                #self.response.out.write("Bad response id.")
-                return
-            r = Response.get(db.Key.from_path('Response', response_id))
-            if not r:
-                self.redirect('/')
-                return
-            if not r.user.key().id() == user.key().id():
-                self.redirect('/')
-                #self.response.out.write("Not allowed to delete.")
-                return
-            r.delete()
-            #self.response.out.write("Response deleted.")
-            #return
-            self.redirect('/')
-        else:
-            self.redirect('/')
+    # dynamically set redirect_uri based on the domain/path actually used (localhost vs appspot vs admonymous.co)
+    callback_url = request.build_absolute_uri(reverse('oauth_callback'))
+    flow.redirect_uri = callback_url
 
-class LogoutHandler(webapp.RequestHandler):
-  def get(self):
-    self.redirect(users.create_logout_url('/'))
+    # request offline access so that google gives us a refresh token
+    # 'include_granted_scopes' merges existing grants in case the user already gave consent
+    authorization_url, state = flow.authorization_url(
+        access_type='offline',
+        include_granted_scopes='true'
+    )
+    # store  OAuth state in the session so that it can be retrieved by oauth_callback
+    request.session['oauth_state'] = state
+    return redirect(authorization_url)
 
-class LoginHandler(webapp.RequestHandler):
-  def get(self):
-    google_account = users.get_current_user()
-    if google_account:
-      self.redirect('/')
-    else:
-      self.redirect(users.create_login_url('/'))
 
-class DeleteUserHandler(webapp.RequestHandler):
-  def get(self):
-    google_account = users.get_current_user()
-    if google_account:
-      user = User.all().filter('google_account', google_account).get()
-      if not user:
-        self.redirect('/')
-      for r in user.response_set:
-        r.delete() 
-      user.delete()
-      self.redirect('/')
-    else:
-      self.redirect('/')
+def oauth_callback(request):
+    state = request.session.get('oauth_state')
+    if not state:
+        return HttpResponse("No OAuth state in session, please try again.", status=400)
 
-def main():
-    application = webapp.WSGIApplication([('/', HomeHandler), 
-                                          ('/logout', LogoutHandler),
-                                          ('/login', LoginHandler),
-                                          ('/contact', ContactHandler),
-                                          ('/print', PrintablePageHandler),
-                                          ('/suggestions', SuggestionsHandler),
-                                          ('/delete_username', DeleteUserHandler),
-                                          ('/delete_admonition', DeleteResponseHandler),
-                                          ('/([0-9a-zA-Z_\-]+)', UserPageHandler)],
-                                         debug=True)
-    util.run_wsgi_app(application)
+    config = load_oauth_config()
+    # create the Flow object with the same 'state' and 'scopes' as the original request.
+    flow = google_auth_oauthlib.flow.Flow.from_client_config(
+        config, 
+        scopes=SCOPES, 
+        state=state
+    )
 
+    # dynamically set redirect_uri based on the domain/path actually used (localhost vs appspot vs admonymous.co)
+    # 'request.build_absolute_uri(request.path)' = scheme + domain + /oauth-callback
+    flow.redirect_uri = request.build_absolute_uri(request.path)
+
+    flow.fetch_token(authorization_response=request.build_absolute_uri())
+
+    credentials = flow.credentials
+    if not credentials or not credentials.valid:
+        return HttpResponse("Invalid credentials from Google OAuth", status=400)
+
+    try:
+        userinfo_resp = requests.get(
+            'https://www.googleapis.com/oauth2/v3/userinfo',
+            headers={'Authorization': f'Bearer {credentials.token}'}
+        )
+        userinfo = userinfo_resp.json()
+        email = userinfo.get('email')
+
+        name_raw = userinfo.get('name', '')
+        name_clean = sanitize_user_input(name_raw)
+
+    except Exception as e:
+        return HttpResponse(f"Failed to fetch user info: {e}", status=500)
+
+    if not email:
+        return HttpResponse("No email returned by Google OAuth", status=400)
+
+    with client.context():
+        existing_user = User.query(User.google_account == email).get()
+        if not existing_user:
+            placeholder_username_raw = re.sub(r'[^\w\s-]', '', name_clean.lower()).replace(' ', '-') or "user"
+            placeholder_username = sanitize_user_input(placeholder_username_raw)
+
+            new_user = User(
+                google_account=email,
+                name=name_clean,
+                username=placeholder_username
+            )
+            new_user.put()
+            existing_user = new_user
+
+        request.session['user_key'] = existing_user.key.urlsafe()
+
+    return redirect('/')
+
+
+urlpatterns = [
+    path('', home, name='home'),
+    path('post_home', home_post, name='home_post'),
+    path('contact', contact, name='contact'),
+    path('print', printable, name='printable'),
+    path('suggestions', suggestions, name='suggestions'),
+    path('delete_username', delete_user, name='delete_user'),
+    path('delete_admonition', delete_response, name='delete_response'),
+    path('logout', logout_view, name='logout'),
+    path('login', login_view, name='login'),
+    path('oauth-callback', oauth_callback, name='oauth_callback'),
+    path('<str:username>', user_page, name='user_page'),
+    path('<str:username>/post', user_page_post, name='user_page_post'),
+]
+
+application = get_wsgi_application()
 
 if __name__ == '__main__':
-    main()
+    from django.core.management import execute_from_command_line
+    execute_from_command_line(sys.argv)

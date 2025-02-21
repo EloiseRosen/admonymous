@@ -1,19 +1,14 @@
-runtime: python27
-threadsafe: false
+runtime: python312
+entrypoint: gunicorn -b :$PORT main:application
 
-
-handlers:
-- url: /_ah/queue/deferred
-  script: $PYTHON_LIB/google/appengine/ext/deferred/handler.py
-  login: admin
-
-- url: /remote_api
-  script: $PYTHON_LIB/google/appengine/ext/remote_api/handler.py
-  login: admin
-
-- url: /stats.*
-  script: $PYTHON_LIB/google/appengine/ext/appstats/ui.py
+env_variables:
+  GCP_PROJECT_ID: "crockersrules-hrd"
+  OAUTH_CLIENT_ID_SECRET_NAME: "my-client-id"
+  OAUTH_CLIENT_SECRET_NAME: "my-client-secret"
+  DJANGO_SECRET_KEY_NAME: "django-secret-key"
+  SENDGRID_API_KEY_NAME: "sendgrid-api-key"
   
+handlers:
 - url: /static
   static_dir: static
   expiration: "30d"
@@ -25,25 +20,3 @@ handlers:
 - url: /robots.txt
   static_files: static/robots.txt
   upload: static/robots.txt
-
-- url: .*
-  script: main.py
-
-libraries:
-- name: django
-  version: "1.2"
-
-skip_files: |
- ^(.*/)?(
- (app\.yaml)|
- (app\.yml)|
- (index\.yaml)|
- (index\.yml)|
- (#.*#)|
- (.*~)|
- (.*\.py[co])|
- (.*/RCS/.*)|
- (\..*)|
- (local_only/.*)|
- (README\.txt)
- )$

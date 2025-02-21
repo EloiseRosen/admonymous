@@ -1,18 +1,17 @@
 {% autoescape off %}
-{% spaceless %}
 <body>
   <table align="center" style="font-size: 12px;" cellpadding="0" cellspacing="0">
 
     <tr id="header">
   		<td>
   			{% block header %}
-  			{% include "_flakes/generic_header.html" %}
+  			{% include "_email/_flakes/generic_header.html" %}
   			{% endblock %}
   		</td>
     </tr>
 
   	{% block top_hr %}
-  	{% include "_flakes/hr.html" %}
+  	{% include "_email/_flakes/hr.html" %}
   	{% endblock %}
 
   	<tr id="content">
@@ -32,7 +31,7 @@
   	</tr>
 
   	{% block bottom_hr %}
-  	{% include "_flakes/hr.html" %}
+  	{% include "_email/_flakes/hr.html" %}
   	{% endblock %}
 
   	<tr id="small-print">
@@ -55,5 +54,4 @@
 
   </table>
 </body>
-{% endspaceless %}
 {% endautoescape %}
