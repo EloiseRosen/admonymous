@@ -1,9 +1,9 @@
 import logging
 import os
 from django.template import loader
+from email.utils import parseaddr
 from sendgrid import SendGridAPIClient
-from sendgrid.helpers.mail import Mail
-
+from sendgrid.helpers.mail import Mail, From, To, Content
 
 class EmailMessage(object):
     def __init__(self, sender=None, to=None, subject=None):
@@ -71,9 +71,17 @@ TXT Version:
             return
 
         sg = SendGridAPIClient(sg_api_key)
+        from_name, from_email = parseaddr(self.sender or "notify@admonymous.co")
+        if not from_email:
+            from_email = "notify@admonymous.co"
+
+        to_name, to_email = parseaddr(self.to or "notify@admonymous.co")
+        if not to_email:
+            to_email = "notify@admonymous.co"
+
         message = Mail(
-            from_email=self.sender,
-            to_emails=self.to,
+            from_email=From(from_email, from_name or None),
+            to_emails=[To(to_email, to_name or None)],
             subject=self.subject,
             html_content=self.html,
             plain_text_content=self.body

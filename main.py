@@ -378,17 +378,21 @@ def login_view(request):
     flow = google_auth_oauthlib.flow.Flow.from_client_config(config, scopes=SCOPES)
     
     # dynamically set redirect_uri based on the domain/path actually used (localhost vs appspot vs admonymous.co)
-    callback_url = request.build_absolute_uri(reverse('oauth_callback'))
-    flow.redirect_uri = callback_url
+    flow.redirect_uri = request.build_absolute_uri(reverse('oauth_callback'))
 
     # request offline access so that google gives us a refresh token
     # 'include_granted_scopes' merges existing grants in case the user already gave consent
-    authorization_url, state = flow.authorization_url(
+    authorization_url, state_bytes = flow.authorization_url(
         access_type='offline',
         include_granted_scopes='true'
     )
+    if isinstance(state_bytes, bytes):
+        state_str = state_bytes.decode('utf-8', errors='ignore')
+    else:
+        state_str = str(state_bytes)
+
     # store  OAuth state in the session so that it can be retrieved by oauth_callback
-    request.session['oauth_state'] = state
+    request.session['oauth_state'] = state_str
     return redirect(authorization_url)
 
 
@@ -411,14 +415,14 @@ def oauth_callback(request):
 
     flow.fetch_token(authorization_response=request.build_absolute_uri())
 
-    credentials = flow.credentials
-    if not credentials or not credentials.valid:
+    creds = flow.credentials
+    if not creds or not creds.valid:
         return HttpResponse("Invalid credentials from Google OAuth", status=400)
 
     try:
         userinfo_resp = requests.get(
             'https://www.googleapis.com/oauth2/v3/userinfo',
-            headers={'Authorization': f'Bearer {credentials.token}'}
+            headers={'Authorization': f'Bearer {creds.token}'}
         )
         userinfo = userinfo_resp.json()
         email = userinfo.get('email')
@@ -431,6 +435,15 @@ def oauth_callback(request):
 
     if not email:
         return HttpResponse("No email returned by Google OAuth", status=400)
+    
+    if hasattr(flow, '_credentials'):
+        try:
+            del flow._credentials
+        except:
+            pass
+
+    if hasattr(flow, 'oauth2session') and flow.oauth2session:
+        flow.oauth2session.token = {}
 
     with client.context():
         existing_user = User.query(User.google_account == email).get()
@@ -446,8 +459,8 @@ def oauth_callback(request):
             new_user.put()
             existing_user = new_user
 
-        request.session['user_key'] = existing_user.key.urlsafe()
-
+        request.session['user_key'] = existing_user.key.urlsafe().decode('utf-8')
+    request.session.pop('oauth_state', None)
     return redirect('/')
 
 
