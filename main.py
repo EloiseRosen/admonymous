@@ -83,7 +83,7 @@ django.setup()
 class User(ndb.Model): 
     username = ndb.StringProperty()
     name = ndb.StringProperty()
-    google_account = ndb.StringProperty()
+    google_account_str = ndb.StringProperty() # legacy version google_account, new version google_account_str
     create_date = ndb.DateTimeProperty(auto_now_add=True)
     update_date = ndb.DateTimeProperty(auto_now=True)
     message = ndb.TextProperty()  # 
@@ -276,8 +276,8 @@ def user_page_post(request, username):
         )
         response_entity.put()
 
-        if target_user and target_user.google_account:
-            target_email = target_user.google_account
+        if target_user and target_user.google_account_str:
+            target_email = target_user.google_account_str
         elif target_user and target_user.username == 'admonymous':
             target_email = 'eloise.rosen@gmail.com'
         else:
@@ -438,13 +438,13 @@ def oauth_callback(request):
     if hasattr(flow, 'oauth2session') and flow.oauth2session:
         flow.oauth2session.token = {}
 
-    existing_user = User.query(User.google_account == email).get()
+    existing_user = User.query(User.google_account_str == email).get()
     if not existing_user:
         placeholder_username_raw = re.sub(r'[^\w\s-]', '', name_clean.lower()).replace(' ', '-') or "user"
         placeholder_username = sanitize_user_input(placeholder_username_raw)
 
         new_user = User(
-            google_account=email,
+            google_account_str=email,
             name=name_clean,
             username=placeholder_username
         )
