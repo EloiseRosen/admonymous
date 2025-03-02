@@ -108,11 +108,6 @@
     <div class="pagination" style="padding:0 20px;">
       <ul>
         <li class="prev{% if not older_offset %} disabled{% endif %}"><a href="?offset={{ older_offset }}">&larr; Previous</a></li>
-        {# <li class="active"><a href="#">1</a></li> #}
-        {# <li><a href="#">2</a></li> #}
-        {# <li><a href="#">3</a></li> #}
-        {# <li><a href="#">4</a></li> #}
-        {# <li><a href="#">5</a></li> #}
         <li class="next{% if not newer_offset %} disabled{% endif %}"><a href="?offset={{ newer_offset }}">Next &rarr;</a></li>
       </ul>
     </div>
@@ -125,7 +120,7 @@
     
     <input type="submit" class="btn danger" name="submit" value="Delete user account" id="delete-account" style="float:right;margin:23px 20px 0 0;"/>
     
-  	<form action="/" method="post" accept-charset="utf-8" class="form-stacked">
+  	<form action="/post_home" method="post" accept-charset="utf-8" class="form-stacked">
       {% csrf_token %}
   	  <strong>Update your note to visitors and/or user info:</strong>
   	  <fieldset>
@@ -151,7 +146,7 @@
   {% else %}
     
     <div style="width:502px;margin-left:auto;margin-right:auto;padding:40px 0 30px 0;">
-      <form action="/" method="post" accept-charset="utf-8" class="form-stacked">
+      <form action="/post_home" method="post" accept-charset="utf-8" class="form-stacked">
         {% csrf_token %}
     	  {# <strong>Update your public message and user info:</strong> #}
     	  <fieldset>
