@@ -61,6 +61,7 @@ settings.configure(
         'django.middleware.common',
     ],
     MIDDLEWARE=[
+        'ndb_middleware.NDBMiddleware',
         'django.middleware.common.CommonMiddleware',
         'django.middleware.csrf.CsrfViewMiddleware',
         'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -78,7 +79,7 @@ settings.configure(
 
 django.setup()
 
-client = ndb.Client()
+
 class User(ndb.Model): 
     username = ndb.StringProperty()
     name = ndb.StringProperty()
@@ -119,9 +120,8 @@ def get_current_user(request):
     user_key_urlsafe = request.session.get('user_key')
     if not user_key_urlsafe:
         return None
-    with client.context():
-        key = ndb.Key(urlsafe=user_key_urlsafe)
-        return key.get()
+    key = ndb.Key(urlsafe=user_key_urlsafe)
+    return key.get()
 
 def sanitize_user_input(dirty_text):
     return bleach.clean(dirty_text or "", tags=[], attributes={}, strip=True)  # (tags is for allowing certain tags to stay)
@@ -151,115 +151,144 @@ def load_oauth_config():
     }
     return config
 
-
 def home(request):
-    with client.context():
-        user = get_current_user(request)
-        if not user:
-            return render(request, 'home.html', {})
-        per_page = get_bounded_int_value(request.GET.get('per_page'), PER_PAGE, 1, MAX_PER_PAGE)
-        offset = get_bounded_int_value(request.GET.get('offset'), 0, 0)
-        query = Response.query(Response.user == user.key).order(-Response.create_date)
-        responses = query.fetch(per_page+1, offset=offset)
-        template_values = {'user': user}
+    user = get_current_user(request)
+    if not user:
+        return render(request, 'home.html', {})
 
-        if offset > 0:
-            template_values['older_offset'] = max(0, offset - per_page)
-        if len(responses) == per_page+1:
-            responses.pop()
-            template_values['newer_offset'] = offset + per_page
+    per_page = get_bounded_int_value(request.GET.get('per_page'), PER_PAGE, 1, MAX_PER_PAGE)
+    offset = get_bounded_int_value(request.GET.get('offset'), 0, 0)
 
-        for r in responses:
-            r.response_id = r.key.id()
-        template_values['responses'] = responses
-        return render(request, 'home.html', template_values)
+    query = Response.query(Response.user == user.key).order(-Response.create_date)
+    responses = query.fetch(per_page + 1, offset=offset)
+
+    template_values = {'user': user}
+    if offset > 0:
+        template_values['older_offset'] = max(0, offset - per_page)
+    if len(responses) == (per_page + 1):
+        responses.pop()
+        template_values['newer_offset'] = offset + per_page
+
+    for r in responses:
+        r.response_id = r.key.id()
+    template_values['responses'] = responses
+
+    return render(request, 'home.html', template_values)
 
 def home_post(request):
-    with client.context():
-        user = get_current_user(request)
-        if not user:
-            return render(request, 'home.html', {'login_url': '/login'})
+    user = get_current_user(request)
+    if not user:
+        return render(request, 'home.html', {'login_url': '/login'})
 
-        def namey(inStr, spacechar='_'):
-            aslug = re.sub(r'[^\w\s-]', '', inStr).strip().lower()
-            aslug = re.sub(r'\s+', spacechar, aslug)
-            return aslug
+    def namey(inStr, spacechar='_'):
+        aslug = re.sub(r'[^\w\s-]', '', inStr).strip().lower()
+        aslug = re.sub(r'\s+', spacechar, aslug)
+        return aslug
 
-        username_input = request.POST.get('username', '')
-        raw_slug = namey(username_input)
-        username = sanitize_user_input(raw_slug)
+    username_input = request.POST.get('username', '')
+    raw_slug = namey(username_input)
+    username = sanitize_user_input(raw_slug)
 
-        existing = User.query(User.username == username).get()
-        username_taken = False
-        if existing and existing.key != user.key:
-            username_taken = True
+    existing = User.query(User.username == username).get()
+    username_taken = False
+    if existing and existing.key != user.key:
+        username_taken = True
 
-        success = None
-        if not username_taken:
-            success = True if user.username else None
-            user.username = username
-        else:
-            success = False
+    success = None
+    if not username_taken:
+        success = True if user.username else None
+        user.username = username
+    else:
+        success = False
 
-        raw_name = request.POST.get('name', '')
-        user.name = sanitize_user_input(raw_name)
-        user.message = sanitize_user_input(request.POST.get('message', ''))
-        user.put()
+    raw_name = request.POST.get('name', '')
+    user.name = sanitize_user_input(raw_name)
+    user.message = sanitize_user_input(request.POST.get('message', ''))
+    user.put()
 
-        template_values = {
-            'user': user,
-            'success': success,
-            'username_taken': username if username_taken else False
-        }
+    template_values = {
+        'user': user,
+        'success': success,
+        'username_taken': username if username_taken else False
+    }
 
-        per_page = get_bounded_int_value(request.POST.get('per_page'), PER_PAGE, 1, MAX_PER_PAGE)
-        offset = get_bounded_int_value(request.POST.get('offset'), 0, 0)
-        query = Response.query(Response.user == user.key).order(-Response.create_date)
-        responses = query.fetch(per_page+1, offset=offset)
+    per_page = get_bounded_int_value(request.POST.get('per_page'), PER_PAGE, 1, MAX_PER_PAGE)
+    offset = get_bounded_int_value(request.POST.get('offset'), 0, 0)
 
-        if offset > 0:
-            template_values['older_offset'] = max(0, offset - per_page)
-        if len(responses) == per_page+1:
-            responses.pop()
-            template_values['newer_offset'] = offset + per_page
+    query = Response.query(Response.user == user.key).order(-Response.create_date)
+    responses = query.fetch(per_page + 1, offset=offset)
 
-        for r in responses:
-            r.response_id = r.key.id()
-        template_values['responses'] = responses
-        return render(request, 'home.html', template_values)
+    if offset > 0:
+        template_values['older_offset'] = max(0, offset - per_page)
+    if len(responses) == (per_page + 1):
+        responses.pop()
+        template_values['newer_offset'] = offset + per_page
+
+    for r in responses:
+        r.response_id = r.key.id()
+    template_values['responses'] = responses
+
+    return render(request, 'home.html', template_values)
 
 def user_page(request, username):
-    with client.context():
-        target_user = User.query(User.username == username).get()
-        if (username == 'admonymous') and not target_user:
-            target_user = User(username='admonymous', name='Admonymous')
-            target_user.put()
-        current_user = get_current_user(request)
-        return render(request, 'user.html', {
-            'target_user': target_user,
-            'target_user_first_name': target_user.first_name() if target_user else '',
-            'user': current_user
-        })
+    target_user = User.query(User.username == username).get()
+    if (username == 'admonymous') and not target_user:
+        target_user = User(username='admonymous', name='Admonymous')
+        target_user.put()
+
+    current_user = get_current_user(request)
+    return render(request, 'user.html', {
+        'target_user': target_user,
+        'target_user_first_name': target_user.first_name() if target_user else '',
+        'user': current_user
+    })
 
 def user_page_post(request, username):
-    with client.context():
-        target_user = User.query(User.username == username).get()
-        current_user = get_current_user(request)
+    target_user = User.query(User.username == username).get()
+    current_user = get_current_user(request)
 
-        author = sanitize_user_input(request.POST.get('author', 'anonymous'))
-        body_raw = request.POST.get('body', '')
-        emailFlag = request.POST.get('email', '')
+    author = sanitize_user_input(request.POST.get('author', 'anonymous'))
+    body_raw = request.POST.get('body', '')
+    emailFlag = request.POST.get('email', '')
 
-        body_stripped = sanitize_user_input(body_raw)
-        processed_body_html = force_str(
-            textile(smart_str(body_stripped))
+    body_stripped = sanitize_user_input(body_raw)
+    processed_body_html = force_str(textile(smart_str(body_stripped)))
+
+    if emailFlag != '':
+        notification = email.EmailMessage(
+            sender='Admonymous <notifications@admonymous.co>',
+            to='eloise.rosen@gmail.com',
+            subject='BOT left someone a response on Admonymous'
         )
+        notification.render_and_send('notification', {
+            'target_user': target_user,
+            'author': None if author == 'anonymous' else author,
+            'body_html': processed_body_html,
+            'body_txt': body_raw
+        })
+        success = True
+    else:  # normal case
+        response_entity = Response(
+            body=processed_body_html,  # processed_body_html has already been sanitized and textile-ized
+            author=author,
+            user=target_user.key if target_user else None,
+            revealed=True
+        )
+        response_entity.put()
 
-        if emailFlag != '':
+        if target_user and target_user.google_account:
+            target_email = target_user.google_account
+        elif target_user and target_user.username == 'admonymous':
+            target_email = 'eloise.rosen@gmail.com'
+        else:
+            target_email = None
+
+        if target_email and processed_body_html:
+            subj = '%s left you a response on Admonymous' % ('Someone' if author == 'anonymous' else author)
             notification = email.EmailMessage(
                 sender='Admonymous <notifications@admonymous.co>',
-                to='eloise.rosen@gmail.com',
-                subject='BOT left someone a response on Admonymous'
+                to=target_email,
+                subject=subj
             )
             notification.render_and_send('notification', {
                 'target_user': target_user,
@@ -267,109 +296,73 @@ def user_page_post(request, username):
                 'body_html': processed_body_html,
                 'body_txt': body_raw
             })
-            success = True
-        else:  # normal case
-            response_entity = Response(
-                body=processed_body_html,  # processed_body_html has already been sanitized and textile-ized
-                author=author,
-                user=target_user.key if target_user else None,
-                revealed=True
-            )
-            response_entity.put()
+        success = True
 
-            # send email
-            if target_user and target_user.google_account:
-                target_email = target_user.google_account
-            elif target_user and target_user.username == 'admonymous':
-                target_email = 'eloise.rosen@gmail.com'
-            else:
-                target_email = None
-
-            if target_email and processed_body_html:
-                subj = '%s left you a response on Admonymous' % ('Someone' if author == 'anonymous' else author)
-                notification = email.EmailMessage(
-                    sender='Admonymous <notifications@admonymous.co>',
-                    to=target_email,
-                    subject=subj
-                )
-                notification.render_and_send('notification', {
-                    'target_user': target_user,
-                    'author': None if author == 'anonymous' else author,
-                    'body_html': processed_body_html,
-                    'body_txt': body_raw
-                })
-            success = True
-
-        template_values = {
-            'target_user': target_user,
-            'user': current_user,
-            'success': success
-        }
-        return render(request, 'user.html', template_values)
+    template_values = {
+        'target_user': target_user,
+        'user': current_user,
+        'success': success
+    }
+    return render(request, 'user.html', template_values)
 
 def contact(request):
-    with client.context():
-        user = get_current_user(request)
-        return render(request, 'contact.html', {'user': user})
+    user = get_current_user(request)
+    return render(request, 'contact.html', {'user': user})
 
 def suggestions(request):
-    with client.context():
-        user = get_current_user(request)
-        args = request.GET.dict()
-        all_topics = [
-            {'name': 'giving', 'description': 'Giving admonition'},
-            {'name': 'receiving', 'description': 'Receiving admonition'},
-            {'name': 'anonymity', 'description': 'Maintaining anonymity'},
-            {'name': 'faq', 'description': 'Frequently Asked Questions'},
-        ]
-        return render(request, 'suggestions.html', {
-            'user': user,
-            'topic': args.keys(),
-            'topic_list': all_topics
-        })
+    user = get_current_user(request)
+    args = request.GET.dict()
+    all_topics = [
+        {'name': 'giving', 'description': 'Giving admonition'},
+        {'name': 'receiving', 'description': 'Receiving admonition'},
+        {'name': 'anonymity', 'description': 'Maintaining anonymity'},
+        {'name': 'faq', 'description': 'Frequently Asked Questions'},
+    ]
+    return render(request, 'suggestions.html', {
+        'user': user,
+        'topic': args.keys(),
+        'topic_list': all_topics
+    })
 
 def printable(request): # TODO
-    with client.context():
-        user = get_current_user(request)
-        if not user:
-            return redirect('/')
-        encoded_url = urllib.parse.quote(f"https://www.admonymous.co/{user.username}")
-        return render(request, 'print.html', {'user': user, 'encoded_url': encoded_url})
+    user = get_current_user(request)
+    if not user:
+        return redirect('/')
+    encoded_url = urllib.parse.quote(f"https://www.admonymous.co/{user.username}")
+    return render(request, 'print.html', {'user': user, 'encoded_url': encoded_url})
 
 def delete_response(request):
-    with client.context():
-        user = get_current_user(request)
-        if not user:
-            return redirect('/')
-        resp_id = request.GET.get('id')
-        if not resp_id:
-            return redirect('/')
-        try:
-            resp_id = int(resp_id)
-        except ValueError:
-            return redirect('/')
-        resp_key = ndb.Key(Response, resp_id)
-        resp = resp_key.get()
-        if not resp or resp.user != user.key:
-            return redirect('/')
-        resp.key.delete()
+    user = get_current_user(request)
+    if not user:
         return redirect('/')
+    resp_id = request.GET.get('id')
+    if not resp_id:
+        return redirect('/')
+    try:
+        resp_id = int(resp_id)
+    except ValueError:
+        return redirect('/')
+    resp_key = ndb.Key(Response, resp_id)
+    resp = resp_key.get()
+    if not resp or resp.user != user.key:
+        return redirect('/')
+    resp.key.delete()
+    return redirect('/')
 
 def logout_view(request):
     request.session.flush()
     return redirect('/')
 
 def delete_user(request):
-    with client.context():
-        user = get_current_user(request)
-        if not user:
-            return redirect('/')
-        user_resps = Response.query(Response.user == user.key).fetch()
-        for r in user_resps:
-            r.key.delete()
-        user.key.delete()
-        request.session.flush()
+    user = get_current_user(request)
+    if not user:
         return redirect('/')
+    user_resps = Response.query(Response.user == user.key).fetch()
+    for r in user_resps:
+        r.key.delete()
+    user.key.delete()
+    request.session.flush()
+    return redirect('/')
 
 
 # Google OAuth 2.0 login flow
@@ -445,21 +438,20 @@ def oauth_callback(request):
     if hasattr(flow, 'oauth2session') and flow.oauth2session:
         flow.oauth2session.token = {}
 
-    with client.context():
-        existing_user = User.query(User.google_account == email).get()
-        if not existing_user:
-            placeholder_username_raw = re.sub(r'[^\w\s-]', '', name_clean.lower()).replace(' ', '-') or "user"
-            placeholder_username = sanitize_user_input(placeholder_username_raw)
+    existing_user = User.query(User.google_account == email).get()
+    if not existing_user:
+        placeholder_username_raw = re.sub(r'[^\w\s-]', '', name_clean.lower()).replace(' ', '-') or "user"
+        placeholder_username = sanitize_user_input(placeholder_username_raw)
 
-            new_user = User(
-                google_account=email,
-                name=name_clean,
-                username=placeholder_username
-            )
-            new_user.put()
-            existing_user = new_user
+        new_user = User(
+            google_account=email,
+            name=name_clean,
+            username=placeholder_username
+        )
+        new_user.put()
+        existing_user = new_user
 
-        request.session['user_key'] = existing_user.key.urlsafe().decode('utf-8')
+    request.session['user_key'] = existing_user.key.urlsafe().decode('utf-8')
     request.session.pop('oauth_state', None)
     return redirect('/')
 
