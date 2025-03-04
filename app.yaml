@@ -6,7 +6,7 @@ env_variables:
   OAUTH_CLIENT_ID_SECRET_NAME: "my-client-id"
   OAUTH_CLIENT_SECRET_NAME: "my-client-secret"
   DJANGO_SECRET_KEY_NAME: "django-secret-key"
-  SENDGRID_API_KEY_NAME: "admonymous-emails-new-as-of-2025"
+  SENDGRID_API_KEY_NAME: "sendgrid-api-key"
   
 handlers:
 - url: /static

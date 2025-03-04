@@ -256,7 +256,7 @@ def user_page_post(request, username):
 
     if emailFlag != '':
         notification = email.EmailMessage(
-            sender='Admonymous <notifications@admonymous.co>',
+            sender='Admonymous <notify@admonymous.co>',
             to='eloise.rosen@gmail.com',
             subject='BOT left someone a response on Admonymous'
         )
@@ -286,7 +286,7 @@ def user_page_post(request, username):
         if target_email and processed_body_html:
             subj = '%s left you a response on Admonymous' % ('Someone' if author == 'anonymous' else author)
             notification = email.EmailMessage(
-                sender='Admonymous <notifications@admonymous.co>',
+                sender='Admonymous <notify@admonymous.co>',
                 to=target_email,
                 subject=subj
             )
