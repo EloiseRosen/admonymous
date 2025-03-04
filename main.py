@@ -254,20 +254,9 @@ def user_page_post(request, username):
     body_stripped = sanitize_user_input(body_raw)
     processed_body_html = force_str(textile(smart_str(body_stripped)))
 
-    if emailFlag != '':
-        notification = email.EmailMessage(
-            sender='Admonymous <notify@admonymous.co>',
-            to='eloise.rosen@gmail.com',
-            subject='BOT left someone a response on Admonymous'
-        )
-        notification.render_and_send('notification', {
-            'target_user': target_user,
-            'author': None if author == 'anonymous' else author,
-            'body_html': processed_body_html,
-            'body_txt': body_raw
-        })
+    if emailFlag != '':  # bot
         success = True
-    else:  # normal case
+    else:
         response_entity = Response(
             body=processed_body_html,  # processed_body_html has already been sanitized and textile-ized
             author=author,
