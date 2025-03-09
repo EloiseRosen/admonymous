@@ -313,13 +313,6 @@ def suggestions(request):
         'topic_list': all_topics
     })
 
-def printable(request): # TODO
-    user = get_current_user(request)
-    if not user:
-        return redirect('/')
-    encoded_url = urllib.parse.quote(f"https://www.admonymous.co/{user.username}")
-    return render(request, 'print.html', {'user': user, 'encoded_url': encoded_url})
-
 def delete_response(request):
     user = get_current_user(request)
     if not user:
@@ -449,7 +442,6 @@ urlpatterns = [
     path('', home, name='home'),
     path('post_home', home_post, name='home_post'),
     path('contact', contact, name='contact'),
-    path('print', printable, name='printable'),
     path('suggestions', suggestions, name='suggestions'),
     path('delete_username', delete_user, name='delete_user'),
     path('delete_admonition', delete_response, name='delete_response'),
