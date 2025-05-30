@@ -254,38 +254,37 @@ def user_page_post(request, username):
     body_stripped = sanitize_user_input(body_raw)
     processed_body_html = force_str(textile(smart_str(body_stripped)))
 
-    if emailFlag != '':  # bot
-        success = True
-    else:
-        response_entity = Response(
-            body=processed_body_html,  # processed_body_html has already been sanitized and textile-ized
-            author=author,
-            user=target_user.key if target_user else None,
-            revealed=True
-        )
-        response_entity.put()
-
-        if target_user and target_user.google_account_str:
-            target_email = target_user.google_account_str
-        elif target_user and target_user.username == 'admonymous':
-            target_email = 'eloise.rosen@gmail.com'
-        else:
-            target_email = None
-
-        if target_email and processed_body_html:
-            subj = '%s left you a response on Admonymous' % ('Someone' if author == 'anonymous' else author)
-            notification = email.EmailMessage(
-                sender='Admonymous <notify@admonymous.co>',
-                to=target_email,
-                subject=subj
+    success = True
+    if emailFlag == '':
+        if body_stripped.strip():
+            response_entity = Response(
+                body=processed_body_html,  # processed_body_html has already been sanitized and textile-ized
+                author=author,
+                user=target_user.key if target_user else None,
+                revealed=True
             )
-            notification.render_and_send('notification', {
-                'target_user': target_user,
-                'author': None if author == 'anonymous' else author,
-                'body_html': processed_body_html,
-                'body_txt': body_raw
-            })
-        success = True
+            response_entity.put()
+
+            if target_user and target_user.google_account_str:
+                target_email = target_user.google_account_str
+            elif target_user and target_user.username == 'admonymous':
+                target_email = 'eloise.rosen@gmail.com'
+            else:
+                target_email = None
+
+            if target_email:
+                subj = '%s left you a response on Admonymous' % ('Someone' if author == 'anonymous' else author)
+                notification = email.EmailMessage(
+                    sender='Admonymous <notify@admonymous.co>',
+                    to=target_email,
+                    subject=subj
+                )
+                notification.render_and_send('notification', {
+                    'target_user': target_user,
+                    'author': None if author == 'anonymous' else author,
+                    'body_html': processed_body_html,
+                    'body_txt': body_raw
+                })
 
     template_values = {
         'target_user': target_user,
