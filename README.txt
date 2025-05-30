@@ -1,1 +1,1 @@
-This project allows people to solicit anonymous feedback. Users have a unique URL that anyone can go to to anonymously submit a message.
+Admonymous is a web app that allows users to solicit anonymous feedback. Each user receives a unique URL (for example https://admonymous.co/eloise). Anyone who visits the URL can anonymously submit a message, at which point a notification is sent to the user.
