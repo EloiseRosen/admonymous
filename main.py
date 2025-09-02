@@ -23,6 +23,12 @@ from helpers import email
 import bleach
 import google_auth_oauthlib.flow
 import requests
+import time
+import hmac
+import hashlib
+import threading
+import unicodedata
+from collections import defaultdict, deque
 
 PER_PAGE = 10
 MAX_PER_PAGE = 100
@@ -103,6 +109,95 @@ class Response(ndb.Model):
     author = ndb.StringProperty()
     reveal_datetime = ndb.DateTimeProperty(auto_now_add=True)
     revealed = ndb.BooleanProperty(default= False)
+
+# --- In-memory filter ---
+
+WINDOW_SECONDS = 24 * 60 * 60  # 24 hours
+MESSAGE_LIMIT = 2 # allow first 2 identical (>=10 chars), block third+
+IP_LIMIT = 10  # allow first 10 from an IP, block 11th+
+
+_SALT = os.urandom(32)  # ephemeral per-process salt. nothing persisted
+
+def _canonicalize_text(s):
+    if not s:
+        return ""
+    s = unicodedata.normalize("NFKC", s)
+    s = re.sub(r"\s+", " ", s)
+    return s.strip()
+
+def _hash_hmac(text):
+    return hmac.new(_SALT, text.encode("utf-8", "ignore"), hashlib.sha256).hexdigest()
+
+def get_client_ip(request):
+    xff = request.META.get("HTTP_X_FORWARDED_FOR") or request.META.get("X_FORWARDED_FOR")
+    if xff:
+        return xff.split(",")[0].strip() or None
+    return request.META.get("HTTP_X_REAL_IP") or request.META.get("REMOTE_ADDR") or None
+
+class _SlidingWindow:
+    def __init__(self, window_seconds=WINDOW_SECONDS, sweep_interval=300):
+        self.window = window_seconds
+        self.sweep_interval = sweep_interval
+        self._by_key = defaultdict(deque)
+        self._lock = threading.RLock()
+        self._last_sweep = 0.0
+
+    def _prune_dq(self, dq, now):
+        cutoff = now - self.window
+        while dq and dq[0] < cutoff:
+            dq.popleft()
+
+    def _maybe_sweep(self, now):
+        if now - self._last_sweep < self.sweep_interval:
+            return
+        for key in list(self._by_key.keys()):
+            dq = self._by_key.get(key)
+            if dq is None:
+                continue
+            self._prune_dq(dq, now)
+            if not dq:
+                self._by_key.pop(key, None)
+        self._last_sweep = now
+
+    def increment_and_count(self, key, now=None):
+        now = now or time.time()
+        with self._lock:
+            self._maybe_sweep(now)
+            dq = self._by_key[key]
+            self._prune_dq(dq, now)
+            dq.append(now)
+            return len(dq)
+
+class Filter:
+    def __init__(self, window_seconds=WINDOW_SECONDS, message_limit=MESSAGE_LIMIT, ip_limit=IP_LIMIT):
+        self.window = window_seconds
+        self.message_limit = message_limit
+        self.ip_limit = ip_limit
+        self._by_message = _SlidingWindow(window_seconds)
+        self._by_ip = _SlidingWindow(window_seconds)
+
+    def decide(self, ip, raw_message):
+        """
+        Returns True if allowed, False if blocked.
+        """
+        now = time.time()
+        canon = _canonicalize_text(raw_message)
+        long_enough = len(canon) >= 10
+
+        ip_key = _hash_hmac(ip) if ip else ""
+        msg_key = _hash_hmac(canon) if long_enough else None
+
+        ip_count = self._by_ip.increment_and_count(ip_key) if ip_key else 0
+        msg_count = self._by_message.increment_and_count(msg_key) if msg_key else 0
+
+        reasons = []
+        if ip_key and ip_count > self.ip_limit:
+            reasons.append("ip_rate")
+        if msg_key and msg_count > self.message_limit:
+            reasons.append("msg_dup")
+        return not reasons
+
+filt = Filter()
 
 def get_bounded_int_value(s, default, lower_bound=None, upper_bound=None):
     try:
@@ -257,34 +352,36 @@ def user_page_post(request, username):
     success = True
     if emailFlag == '':
         if body_stripped.strip():
-            response_entity = Response(
-                body=processed_body_html,  # processed_body_html has already been sanitized and textile-ized
-                author=author,
-                user=target_user.key if target_user else None,
-                revealed=True
-            )
-            response_entity.put()
-
-            if target_user and target_user.google_account_str:
-                target_email = target_user.google_account_str
-            elif target_user and target_user.username == 'admonymous':
-                target_email = 'eloise.rosen@gmail.com'
-            else:
-                target_email = None
-
-            if target_email:
-                subj = '%s left you a response on Admonymous' % ('Someone' if author == 'anonymous' else author)
-                notification = email.EmailMessage(
-                    sender='Admonymous <notify@admonymous.co>',
-                    to=target_email,
-                    subject=subj
+            client_ip = get_client_ip(request)
+            if filt.decide(client_ip, body_stripped):
+                response_entity = Response(
+                    body=processed_body_html,  # processed_body_html has already been sanitized and textile-ized
+                    author=author,
+                    user=target_user.key if target_user else None,
+                    revealed=True
                 )
-                notification.render_and_send('notification', {
-                    'target_user': target_user,
-                    'author': None if author == 'anonymous' else author,
-                    'body_html': processed_body_html,
-                    'body_txt': body_raw
-                })
+                response_entity.put()
+
+                if target_user and target_user.google_account_str:
+                    target_email = target_user.google_account_str
+                elif target_user and target_user.username == 'admonymous':
+                    target_email = 'eloise.rosen@gmail.com'
+                else:
+                    target_email = None
+
+                if target_email:
+                    subj = '%s left you a response on Admonymous' % ('Someone' if author == 'anonymous' else author)
+                    notification = email.EmailMessage(
+                        sender='Admonymous <notify@admonymous.co>',
+                        to=target_email,
+                        subject=subj
+                    )
+                    notification.render_and_send('notification', {
+                        'target_user': target_user,
+                        'author': None if author == 'anonymous' else author,
+                        'body_html': processed_body_html,
+                        'body_txt': body_raw
+                    })
 
     template_values = {
         'target_user': target_user,
