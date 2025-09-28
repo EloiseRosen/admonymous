@@ -3,7 +3,7 @@ google-cloud-ndb==2.3.2
 google-cloud-secret-manager==2.16.2
 google-auth-oauthlib==1.0.0
 gunicorn==23.0.0
-requests== 2.32.4
+requests==2.32.4
 sendgrid==6.10.0
 textile==4.0.2
 bleach==6.0.0

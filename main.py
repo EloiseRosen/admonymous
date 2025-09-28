@@ -67,6 +67,7 @@ settings.configure(
         'django.middleware.common',
     ],
     MIDDLEWARE=[
+        'django.middleware.security.SecurityMiddleware',
         'ndb_middleware.NDBMiddleware',
         'django.middleware.common.CommonMiddleware',
         'django.middleware.csrf.CsrfViewMiddleware',
@@ -81,6 +82,9 @@ settings.configure(
     }],
     WSGI_APPLICATION='main.application',
     SESSION_ENGINE="django.contrib.sessions.backends.signed_cookies",
+
+    SECURE_PROXY_SSL_HEADER=('HTTP_X_FORWARDED_PROTO', 'https'),
+    USE_X_FORWARDED_HOST=True,
 )
 
 django.setup()
@@ -442,14 +446,36 @@ def delete_user(request):
     request.session.flush()
     return redirect('/')
 
+def _external_base_url(request):
+    """
+    Return canonical external base URL.
+    Forces https for non-local hosts; allows http only for localhost.
+    Can be overridden with EXTERNAL_BASE_URL (e.g., a specific staging host).
+    """
+    override = os.getenv('EXTERNAL_BASE_URL')
+    if override:
+        return override.rstrip('/')
+
+    host = request.get_host().split(',')[0]
+    if host.startswith('localhost') or host.startswith('127.0.0.1'):
+        scheme = 'http'
+    else:
+        scheme = 'https'
+    return f"{scheme}://{host}"
+
+def _https_absolute_uri(request, path_or_fullpath):
+    base = _external_base_url(request)
+    if path_or_fullpath.startswith('/'):
+        return f"{base}{path_or_fullpath}"
+    return f"{base}/{path_or_fullpath.lstrip('/')}"
+
 
 # Google OAuth 2.0 login flow
 def login_view(request):
     config = load_oauth_config()
     flow = google_auth_oauthlib.flow.Flow.from_client_config(config, scopes=SCOPES)
     
-    # dynamically set redirect_uri based on the domain/path actually used (localhost vs appspot vs admonymous.co)
-    flow.redirect_uri = request.build_absolute_uri(reverse('oauth_callback'))
+    flow.redirect_uri = _https_absolute_uri(request, reverse('oauth_callback'))
 
     # request offline access so that google gives us a refresh token
     # 'include_granted_scopes' merges existing grants in case the user already gave consent
@@ -480,11 +506,10 @@ def oauth_callback(request):
         state=state
     )
 
-    # dynamically set redirect_uri based on the domain/path actually used (localhost vs appspot vs admonymous.co)
-    # 'request.build_absolute_uri(request.path)' = scheme + domain + /oauth-callback
-    flow.redirect_uri = request.build_absolute_uri(request.path)
+    flow.redirect_uri = _https_absolute_uri(request, request.path)
 
-    flow.fetch_token(authorization_response=request.build_absolute_uri())
+    authorization_response = _https_absolute_uri(request, request.get_full_path())
+    flow.fetch_token(authorization_response=authorization_response)
 
     creds = flow.credentials
     if not creds or not creds.valid:
