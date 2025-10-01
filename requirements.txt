@@ -1,4 +1,4 @@
-Django==4.2.22
+Django==4.2.25
 google-cloud-ndb==2.3.2
 google-cloud-secret-manager==2.16.2
 google-auth-oauthlib==1.0.0
