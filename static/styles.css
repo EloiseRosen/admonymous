@@ -36,9 +36,10 @@ div#definition {
 	clear:both;
 }
 div#user-message, div#user-message p {
-	color:00438a;
+	color: #00438a;
 	font: 20px Georgia, "Times New Roman", Times, serif;
 	line-height: 24px;	
+	white-space: pre-line;
 }
 div#sig {
 	text-align:right;

@@ -99,7 +99,10 @@ class User(ndb.Model):
     message = ndb.TextProperty()  # 
 
     def message_html(self):
-        return self.message or ""
+        if not self.message:
+            return ""
+        msg = self.message.replace("\r\n", "\n").replace("\r", "\n")
+        return msg.replace("\n", "<br/>\n")
 
     def first_name(self):
         if not self.name:
