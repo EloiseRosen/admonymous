@@ -264,16 +264,25 @@ def home(request):
     query = Response.query(Response.user == user.key).order(-Response.create_date)
     responses = query.fetch(per_page + 1, offset=offset)
 
-    template_values = {'user': user}
+    older_offset = None
+    newer_offset = None
+
     if offset > 0:
-        template_values['older_offset'] = max(0, offset - per_page)
+        older_offset = max(0, offset - per_page)
+
     if len(responses) == (per_page + 1):
         responses.pop()
-        template_values['newer_offset'] = offset + per_page
+        newer_offset = offset + per_page
 
     for r in responses:
         r.response_id = r.key.id()
-    template_values['responses'] = responses
+
+    template_values = {
+        'user': user,
+        'responses': responses,
+        'older_offset': older_offset,
+        'newer_offset': newer_offset,
+    }
 
     return render(request, 'home.html', template_values)
 
@@ -320,15 +329,24 @@ def home_post(request):
     query = Response.query(Response.user == user.key).order(-Response.create_date)
     responses = query.fetch(per_page + 1, offset=offset)
 
+    older_offset = None
+    newer_offset = None
+
     if offset > 0:
-        template_values['older_offset'] = max(0, offset - per_page)
+        older_offset = max(0, offset - per_page)
+
     if len(responses) == (per_page + 1):
         responses.pop()
-        template_values['newer_offset'] = offset + per_page
+        newer_offset = offset + per_page
 
     for r in responses:
         r.response_id = r.key.id()
-    template_values['responses'] = responses
+
+    template_values.update({
+        'responses': responses,
+        'older_offset': older_offset,
+        'newer_offset': newer_offset,
+    })
 
     return render(request, 'home.html', template_values)
 
