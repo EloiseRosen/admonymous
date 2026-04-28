@@ -11,12 +11,12 @@
 <script type="text/javascript" charset="utf-8">
   $(document).ready(function() {
     $('input#delete-account').click(function() {
-      if (confirm('Are you sure you want to delete your username? This won\'t affect your Google account, but will delete all of the admonitions people have left for you.')) {
+      if (confirm('Are you sure you want to delete your username? This won\'t affect your Google account, but will delete all of the feedback people have left for you.')) {
         window.location = "/delete_username";
       }
     });
     $('a#delete-response').click(function() {
-      if (confirm('Are you sure you want to delete this admonition?')) {
+      if (confirm('Are you sure you want to delete this message?')) {
         var response_id = parseInt($(this).attr("response_id"));
         window.location = "/delete_admonition?id="+response_id;
       }
@@ -38,13 +38,13 @@
     
     <div id="example-admonitions">
       <div class="span5">
-        &ldquo;The sound you make when you enjoy your food is adorable, but probably not working for you during business lunches.&rdquo;
+        &ldquo;Your cologne is really strong, it would be better to use less of it.&rdquo;
       </div>
       <div class="span5">
-        &ldquo;You&rsquo;ve said so many times that it's important to you not to skip Physics class, but you weren&rsquo;t there again today &ndash; this is just a heads up to keep you thinking!&rdquo;
+        &ldquo;I appreciated your new approach to keeping the group on track today, it worked really well!&rdquo;
       </div>
       <div class="span4">
-        &ldquo;I really appreciated your new approach to keeping the group on track today, stick with it!&rdquo;
+        &ldquo;When you&rsquo;re excited you interrupt people a little too much.&rdquo;
       </div>
     </div>
     
@@ -57,9 +57,8 @@
 
       <p>Constructive criticism is beneficial to both giver and recipient, but the fact that people often can't deliver negative (and sometimes positive!) feedback without social risk discourages the behavior.</p>
 
-      <p>Admonymous allows people to anonymously admonish and admire their friends and acquaintances. All you need to do in order to let others admonish and admire you is <a href="/login" target="_blank">sign up</a> and publish the admonition link where people can see it, like in your email signature or on your Facebook account. By becoming aware of your blind spots, you will be more able to address them.</p>
+      <p>Admonymous allows people to anonymously admonish and admire their friends and acquaintances. All you need to do in order to let others leave feedback for you is <a href="/login" target="_blank">sign up</a> and publish the link where people can see it, like in your email signature or in your Twitter bio. By becoming aware of your blind spots, you become more able to address them.</p>
 
-      <p>Giving and receiving good feedback isn't easy. For some suggestions, take a look at our <a href="/suggestions" target="_new">Suggestions and FAQ</a>.</p>
     </div>
     
     <div style="text-align:center;padding:0 0 50px 0;">
@@ -86,12 +85,12 @@
           </div>
         {% endfor %}
         <div class="alert-message block-message info" style="text-align:center;">
-  	If you don't feel right at home receiving direct admonition, please take a minute to read <a href="/suggestions?receiving" target="_new">some suggestions</a>.
+  	If you don't feel right at home receiving feedback, please take a minute to read <a href="/suggestions?receiving" target="_new">some suggestions</a>.
         </div>
       {% else %}
         <h1>Welcome!</h1>
         <div class="alert-message block-message info">
-          You don't have any admonitions yet. <br/>
+          You don't have any feedback yet. <br/>
 
           Your URL is:<br/>
           <pre style="margin:10px 0;"><a href="https://www.admonymous.co/{{ user.username }}">https://www.admonymous.co/{{ user.username }}</a></pre>

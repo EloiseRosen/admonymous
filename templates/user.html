@@ -6,7 +6,7 @@
     
     {% if success %}
       <div class="alert-message success">
-        Admonition successfully submitted!
+        Feedback successfully submitted!
       </div>
     {% else %}
 			<h1 style="text-align:center;">Leave a message for {{ target_user.name }}</h1>
@@ -37,7 +37,7 @@
   {% csrf_token %}
     <input type="text" name="email" value="" id="email"/>
     <fieldset style="padding-top:0px;">
-			<p>Enter your message here. If you haven't yet, please take a minute to go through some suggestions for <a href="/suggestions?giving" target="_giving">giving admonition</a> and <a href="/suggestions?anonymity" target="_anon">maintaining anonymity</a>.</p>
+			<p>Enter your message here. If you haven't yet, please take a minute to go through some suggestions for <a href="/suggestions?giving" target="_giving">giving feedback</a> and <a href="/suggestions?anonymity" target="_anon">maintaining anonymity</a>.</p>
       <textarea name="body" style="width:100%;height:200px;padding:20px;margin-top:0px;"></textarea><br/><br/>
       
       <div style="text-align:right;width:100%;">

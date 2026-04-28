@@ -423,8 +423,8 @@ def suggestions(request):
     user = get_current_user(request)
     args = request.GET.dict()
     all_topics = [
-        {'name': 'giving', 'description': 'Giving admonition'},
-        {'name': 'receiving', 'description': 'Receiving admonition'},
+        {'name': 'giving', 'description': 'Giving feedback'},
+        {'name': 'receiving', 'description': 'Receiving feedback'},
         {'name': 'anonymity', 'description': 'Maintaining anonymity'},
         {'name': 'faq', 'description': 'Frequently Asked Questions'},
     ]
