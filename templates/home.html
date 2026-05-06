@@ -21,6 +21,20 @@
         window.location = "/delete_admonition?id="+response_id;
       }
     });
+    $('.local-date').each(function() {
+      var createdAt = $(this).attr('data-created-at');
+      var createdDate = new Date(createdAt);
+      if (!createdAt || isNaN(createdDate.getTime())) {
+        return;
+      }
+      try {
+        $(this).text(createdDate.toLocaleDateString(undefined, {
+          dateStyle: 'medium'
+        }));
+      } catch (e) {
+        $(this).text(createdDate.toLocaleDateString());
+      }
+    });
   });
 </script>
 
@@ -75,7 +89,7 @@
           <div class="response">
 
             <div class="response-meta">
-              <span style="font-weight:bold;">{{ response.create_date|date:"l n.j.y" }}</span><br/>
+              <span class="local-date" data-created-at="{{ response.create_date_utc_iso }}" style="font-weight:bold;">{{ response.create_date|date:"M j, Y" }}</span><br/>
               <span style="color:#666;">{{ response.author|default_if_none:"anonymous" }}</span>
             </div>
             <div class="response-body">

@@ -217,6 +217,14 @@ def get_bounded_int_value(s, default, lower_bound=None, upper_bound=None):
         val = upper_bound
     return val
 
+def prepare_responses_for_display(responses):
+    for response in responses:
+        response.response_id = response.key.id()
+        create_date = response.create_date
+        if create_date and create_date.tzinfo is not None:
+            create_date = create_date.astimezone(datetime.timezone.utc).replace(tzinfo=None)
+        response.create_date_utc_iso = create_date.strftime('%Y-%m-%dT%H:%M:%SZ') if create_date else ''
+
 def get_current_user(request):
     """Return the NDB User object for logged in user (from session)."""
     user_key_urlsafe = request.session.get('user_key')
@@ -274,8 +282,7 @@ def home(request):
         responses.pop()
         newer_offset = offset + per_page
 
-    for r in responses:
-        r.response_id = r.key.id()
+    prepare_responses_for_display(responses)
 
     template_values = {
         'user': user,
@@ -339,8 +346,7 @@ def home_post(request):
         responses.pop()
         newer_offset = offset + per_page
 
-    for r in responses:
-        r.response_id = r.key.id()
+    prepare_responses_for_display(responses)
 
     template_values.update({
         'responses': responses,
