@@ -96,13 +96,20 @@ class User(ndb.Model):
     google_account_str = ndb.StringProperty() # legacy version google_account, new version google_account_str
     create_date = ndb.DateTimeProperty(auto_now_add=True)
     update_date = ndb.DateTimeProperty(auto_now=True)
-    message = ndb.TextProperty()  # 
+    message = ndb.TextProperty()  #
+    feedback_topics = ndb.TextProperty()  # one topic per line
 
     def message_html(self):
         if not self.message:
             return ""
         msg = self.message.replace("\r\n", "\n").replace("\r", "\n")
         return msg.replace("\n", "<br/>\n")
+
+    def feedback_topics_list(self):
+        if not self.feedback_topics:
+            return []
+        topics = self.feedback_topics.replace("\r\n", "\n").replace("\r", "\n")
+        return [topic.strip() for topic in topics.split("\n") if topic.strip()]
 
     def first_name(self):
         if not self.name:
@@ -322,6 +329,7 @@ def home_post(request):
     raw_name = request.POST.get('name', '')
     user.name = sanitize_user_input(raw_name)
     user.message = sanitize_user_input(request.POST.get('message', ''))
+    user.feedback_topics = sanitize_user_input(request.POST.get('feedback_topics', ''))
     user.put()
 
     template_values = {
