@@ -29,6 +29,12 @@ import hashlib
 import threading
 import unicodedata
 from collections import defaultdict, deque
+from feedback_topics import (
+    MAX_FEEDBACK_TOPICS_INPUT_LENGTH,
+    MAX_STORED_FEEDBACK_TOPICS_LENGTH,
+    FeedbackTopicsValidationError,
+    canonicalize_feedback_topics,
+)
 
 PER_PAGE = 10
 MAX_PER_PAGE = 100
@@ -296,6 +302,7 @@ def home(request):
         'responses': responses,
         'older_offset': older_offset,
         'newer_offset': newer_offset,
+        'feedback_topics_form_value': user.feedback_topics,
     }
 
     return render(request, 'home.html', template_values)
@@ -305,37 +312,56 @@ def home_post(request):
     if not user:
         return render(request, 'home.html', {'login_url': '/login'})
 
+    raw_feedback_topics = request.POST.get('feedback_topics', '')
+    feedback_topics_error = None
+    feedback_topics_form_value = user.feedback_topics
+    try:
+        feedback_topics = canonicalize_feedback_topics(
+            raw_feedback_topics,
+            sanitize_user_input,
+        )
+    except FeedbackTopicsValidationError as error:
+        feedback_topics_error = str(error)
+        feedback_topics_form_value = sanitize_user_input(
+            raw_feedback_topics[:MAX_FEEDBACK_TOPICS_INPUT_LENGTH]
+        )[:MAX_STORED_FEEDBACK_TOPICS_LENGTH]
+
     def namey(inStr, spacechar='_'):
         aslug = re.sub(r'[^\w\s-]', '', inStr).strip().lower()
         aslug = re.sub(r'\s+', spacechar, aslug)
         return aslug
 
-    username_input = request.POST.get('username', '')
-    raw_slug = namey(username_input)
-    username = sanitize_user_input(raw_slug)
-
-    existing = User.query(User.username == username).get()
+    username = None
     username_taken = False
-    if existing and existing.key != user.key:
-        username_taken = True
-
     success = None
-    if not username_taken:
-        success = True if user.username else None
-        user.username = username
-    else:
-        success = False
+    if not feedback_topics_error:
+        username_input = request.POST.get('username', '')
+        raw_slug = namey(username_input)
+        username = sanitize_user_input(raw_slug)
 
-    raw_name = request.POST.get('name', '')
-    user.name = sanitize_user_input(raw_name)
-    user.message = sanitize_user_input(request.POST.get('message', ''))
-    user.feedback_topics = sanitize_user_input(request.POST.get('feedback_topics', ''))
-    user.put()
+        existing = User.query(User.username == username).get()
+        if existing and existing.key != user.key:
+            username_taken = True
+
+        if not username_taken:
+            success = True if user.username else None
+            user.username = username
+        else:
+            success = False
+
+        raw_name = request.POST.get('name', '')
+        user.name = sanitize_user_input(raw_name)
+        user.message = sanitize_user_input(request.POST.get('message', ''))
+        user.feedback_topics = feedback_topics
+        user.put()
+        feedback_topics_form_value = feedback_topics
 
     template_values = {
         'user': user,
         'success': success,
-        'username_taken': username if username_taken else False
+        'username_taken': username if username_taken else False,
+        'feedback_topics_error': feedback_topics_error,
+        'feedback_topics_form_value': feedback_topics_form_value,
     }
 
     per_page = get_bounded_int_value(request.POST.get('per_page'), PER_PAGE, 1, MAX_PER_PAGE)
