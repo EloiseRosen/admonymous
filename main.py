@@ -85,7 +85,7 @@ django_secret_name = os.environ.get('DJANGO_SECRET_KEY_NAME', 'django-secret-key
 django_secret_key = get_secret_value(django_secret_name)
 
 settings.configure(
-    DEBUG=True,
+    DEBUG=False,
     SECRET_KEY=django_secret_key,
     ALLOWED_HOSTS=['*'],
     ROOT_URLCONF=__name__,
@@ -787,8 +787,9 @@ def oauth_callback(request):
         bounded_name = name_raw[:MAX_PROFILE_NAME_LENGTH]
         name_clean = sanitize_single_line_user_input(bounded_name)
 
-    except Exception as e:
-        return HttpResponse(f"Failed to fetch user info: {e}", status=500)
+    except Exception:
+        logging.exception("Failed to fetch user info from Google OAuth")
+        return HttpResponse("Google sign-in failed. Please try again.", status=500)
 
     if not email:
         return HttpResponse("No email returned by Google OAuth", status=400)
