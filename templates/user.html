@@ -26,6 +26,17 @@
         {% endif %}
         <div style="clear:both;"></div>
       </div>
+
+      {% if target_user.feedback_topics_list %}
+      <details id="feedback-topics">
+        <summary>Things {{ target_user_first_name|default:"they" }} would like feedback on</summary>
+        <ul>
+          {% for topic in target_user.feedback_topics_list %}
+          <li>{{ topic }}</li>
+          {% endfor %}
+        </ul>
+      </details>
+      {% endif %}
     {% endif %}
 
   <style>

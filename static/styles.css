@@ -49,4 +49,38 @@ div#user-page-welcome {
 	width:51%;
 	float:right;
 	font-size:14px;
+}details#feedback-topics {
+	margin: 0 0 18px 0;
+	padding: 10px 16px;
+	border: 1px solid #ddd;
+	border-radius: 4px;
+	background: #f9f9f9;
+}
+details#feedback-topics summary {
+	cursor: pointer;
+	color: #00438a;
+	font: 17px Georgia, "Times New Roman", Times, serif;
+	list-style: none;
+}
+details#feedback-topics summary::-webkit-details-marker {
+	display: none;
+}
+details#feedback-topics summary:before {
+	content: "\25b8\00a0";
+	color: #ff801f;
+}
+details#feedback-topics[open] summary:before {
+	content: "\25be\00a0";
+}
+details#feedback-topics[open] summary {
+	margin-bottom: 8px;
+}
+details#feedback-topics ul {
+	margin: 0;
+	padding-left: 22px;
+}
+details#feedback-topics ul li {
+	color: #00438a;
+	font: 16px Georgia, "Times New Roman", Times, serif;
+	line-height: 22px;
 }
