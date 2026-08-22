@@ -5,6 +5,7 @@ Django, Cloud NDB, Google OAuth 2.0
 import sys
 import os
 import re
+import html
 import datetime
 import urllib.parse
 import logging
@@ -28,16 +29,36 @@ import hmac
 import hashlib
 import threading
 import unicodedata
-from collections import defaultdict, deque
+from collections import deque
 from feedback_topics import (
     MAX_FEEDBACK_TOPICS_INPUT_LENGTH,
-    MAX_STORED_FEEDBACK_TOPICS_LENGTH,
     FeedbackTopicsValidationError,
     canonicalize_feedback_topics,
 )
 
 PER_PAGE = 10
 MAX_PER_PAGE = 100
+MAX_FEEDBACK_BODY_LENGTH = 5_000
+MAX_FEEDBACK_AUTHOR_LENGTH = 100
+MAX_PROFILE_NAME_LENGTH = 100
+MAX_USERNAME_LENGTH = 50
+MAX_PROFILE_MESSAGE_LENGTH = 2_000
+MAX_FEEDBACK_HTML_BYTES = 64 * 1024
+MAX_INDEXED_STRING_BYTES = 1_500
+
+FEEDBACK_HTML_TAGS = frozenset({
+    'p', 'br', 'strong', 'em', 'b', 'i',
+    'ul', 'ol', 'li', 'blockquote', 'pre', 'code',
+    'del', 'ins', 'sup', 'sub',
+})
+
+FORM_LIMITS = {
+    'max_feedback_body_length': MAX_FEEDBACK_BODY_LENGTH,
+    'max_feedback_author_length': MAX_FEEDBACK_AUTHOR_LENGTH,
+    'max_profile_name_length': MAX_PROFILE_NAME_LENGTH,
+    'max_username_length': MAX_USERNAME_LENGTH,
+    'max_profile_message_length': MAX_PROFILE_MESSAGE_LENGTH,
+}
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 SCOPES = [
     "https://www.googleapis.com/auth/userinfo.email",
@@ -135,6 +156,8 @@ class Response(ndb.Model):
 WINDOW_SECONDS = 24 * 60 * 60  # 24 hours
 MESSAGE_LIMIT = 2 # allow first 2 identical (>=10 chars), block third+
 IP_LIMIT = 10  # allow first 10 from an IP, block 11th+
+MAX_TRACKED_IPS = 10_000
+MAX_TRACKED_MESSAGES = 10_000
 
 _SALT = os.urandom(32)  # ephemeral per-process salt. nothing persisted
 
@@ -149,16 +172,27 @@ def _hash_hmac(text):
     return hmac.new(_SALT, text.encode("utf-8", "ignore"), hashlib.sha256).hexdigest()
 
 def get_client_ip(request):
+    appengine_ip = request.META.get("HTTP_X_APPENGINE_USER_IP")
+    if appengine_ip:
+        return appengine_ip.strip() or None
     xff = request.META.get("HTTP_X_FORWARDED_FOR") or request.META.get("X_FORWARDED_FOR")
     if xff:
         return xff.split(",")[0].strip() or None
     return request.META.get("HTTP_X_REAL_IP") or request.META.get("REMOTE_ADDR") or None
 
 class _SlidingWindow:
-    def __init__(self, window_seconds=WINDOW_SECONDS, sweep_interval=300):
+    def __init__(
+        self,
+        window_seconds=WINDOW_SECONDS,
+        max_keys=MAX_TRACKED_MESSAGES,
+        max_events_per_key=MESSAGE_LIMIT,
+        sweep_interval=300,
+    ):
         self.window = window_seconds
+        self.max_keys = max_keys
+        self.max_events_per_key = max_events_per_key
         self.sweep_interval = sweep_interval
-        self._by_key = defaultdict(deque)
+        self._by_key = {}
         self._lock = threading.RLock()
         self._last_sweep = 0.0
 
@@ -180,11 +214,27 @@ class _SlidingWindow:
         self._last_sweep = now
 
     def increment_and_count(self, key, now=None):
-        now = now or time.time()
+        if now is None:
+            now = time.time()
         with self._lock:
             self._maybe_sweep(now)
-            dq = self._by_key[key]
-            self._prune_dq(dq, now)
+
+            dq = self._by_key.get(key)
+            if dq is not None:
+                self._prune_dq(dq, now)
+                if not dq:
+                    self._by_key.pop(key, None)
+                    dq = None
+
+            if dq is None:
+                if len(self._by_key) >= self.max_keys:
+                    return self.max_events_per_key + 1
+                dq = deque()
+                self._by_key[key] = dq
+
+            if len(dq) >= self.max_events_per_key:
+                return self.max_events_per_key + 1
+
             dq.append(now)
             return len(dq)
 
@@ -193,29 +243,35 @@ class Filter:
         self.window = window_seconds
         self.message_limit = message_limit
         self.ip_limit = ip_limit
-        self._by_message = _SlidingWindow(window_seconds)
-        self._by_ip = _SlidingWindow(window_seconds)
+        self._by_message = _SlidingWindow(
+            window_seconds,
+            max_keys=MAX_TRACKED_MESSAGES,
+            max_events_per_key=message_limit,
+        )
+        self._by_ip = _SlidingWindow(
+            window_seconds,
+            max_keys=MAX_TRACKED_IPS,
+            max_events_per_key=ip_limit,
+        )
 
     def decide(self, ip, raw_message):
         """
         Returns True if allowed, False if blocked.
         """
         now = time.time()
-        canon = _canonicalize_text(raw_message)
-        long_enough = len(canon) >= 10
-
         ip_key = _hash_hmac(ip) if ip else ""
-        msg_key = _hash_hmac(canon) if long_enough else None
+        if ip_key:
+            ip_count = self._by_ip.increment_and_count(ip_key, now=now)
+            if ip_count > self.ip_limit:
+                return False
 
-        ip_count = self._by_ip.increment_and_count(ip_key) if ip_key else 0
-        msg_count = self._by_message.increment_and_count(msg_key) if msg_key else 0
+        canon = _canonicalize_text(raw_message)
+        if len(canon) < 10:
+            return True
 
-        reasons = []
-        if ip_key and ip_count > self.ip_limit:
-            reasons.append("ip_rate")
-        if msg_key and msg_count > self.message_limit:
-            reasons.append("msg_dup")
-        return not reasons
+        msg_key = _hash_hmac(canon)
+        msg_count = self._by_message.increment_and_count(msg_key, now=now)
+        return msg_count <= self.message_limit
 
 filt = Filter()
 
@@ -248,6 +304,55 @@ def get_current_user(request):
 
 def sanitize_user_input(dirty_text):
     return bleach.clean(dirty_text or "", tags=[], attributes={}, strip=True)  # (tags is for allowing certain tags to stay)
+
+
+def sanitize_single_line_user_input(dirty_text):
+    cleaned = sanitize_user_input(dirty_text)
+    return re.sub(r'[\x00-\x1f\x7f]+', ' ', cleaned).strip()
+
+
+def sanitize_feedback_html(dirty_html):
+    return bleach.clean(
+        dirty_html or "",
+        tags=FEEDBACK_HTML_TAGS,
+        attributes={},
+        protocols=frozenset(),
+        strip=True,
+        strip_comments=True,
+    )
+
+
+def get_profile_form_values(user):
+    return {
+        'name_form_value': html.unescape(user.name or ''),
+        'username_form_value': html.unescape(user.username or ''),
+        'message_form_value': html.unescape(user.message or ''),
+        'feedback_topics_form_value': html.unescape(user.feedback_topics or ''),
+    }
+
+
+def render_user_template(request, target_user, current_user, status=200, **values):
+    template_values = {
+        'target_user': target_user,
+        'target_user_first_name': target_user.first_name() if target_user else '',
+        'user': current_user,
+        'feedback_body_form_value': '',
+        'feedback_author_form_value': 'anonymous',
+    }
+    template_values.update(FORM_LIMITS)
+    template_values.update(values)
+    return render(request, 'user.html', template_values, status=status)
+
+
+def get_user_by_username(username):
+    if len(username.encode('utf-8')) > MAX_INDEXED_STRING_BYTES:
+        return None
+    return User.query(User.username == username).get()
+
+
+def normalize_username(value, spacechar='_'):
+    slug = re.sub(r'[^\w\s-]', '', value).strip().lower()
+    return re.sub(r'\s+', spacechar, slug)
 
 
 def load_oauth_config():
@@ -302,8 +407,9 @@ def home(request):
         'responses': responses,
         'older_offset': older_offset,
         'newer_offset': newer_offset,
-        'feedback_topics_form_value': user.feedback_topics,
     }
+    template_values.update(FORM_LIMITS)
+    template_values.update(get_profile_form_values(user))
 
     return render(request, 'home.html', template_values)
 
@@ -312,9 +418,26 @@ def home_post(request):
     if not user:
         return render(request, 'home.html', {'login_url': '/login'})
 
+    raw_name = request.POST.get('name', '')
+    raw_username = request.POST.get('username', '')
+    raw_message = request.POST.get('message', '')
     raw_feedback_topics = request.POST.get('feedback_topics', '')
+
+    name_error = None
+    username_error = None
+    message_error = None
     feedback_topics_error = None
-    feedback_topics_form_value = user.feedback_topics
+
+    if len(raw_name) > MAX_PROFILE_NAME_LENGTH:
+        name_error = f'Name must be {MAX_PROFILE_NAME_LENGTH} characters or fewer.'
+    if len(raw_username) > MAX_USERNAME_LENGTH:
+        username_error = f'Username must be {MAX_USERNAME_LENGTH} characters or fewer.'
+    if len(raw_message) > MAX_PROFILE_MESSAGE_LENGTH:
+        message_error = (
+            f'Your note must be {MAX_PROFILE_MESSAGE_LENGTH:,} characters or fewer.'
+        )
+
+    feedback_topics = None
     try:
         feedback_topics = canonicalize_feedback_topics(
             raw_feedback_topics,
@@ -322,47 +445,61 @@ def home_post(request):
         )
     except FeedbackTopicsValidationError as error:
         feedback_topics_error = str(error)
-        feedback_topics_form_value = sanitize_user_input(
-            raw_feedback_topics[:MAX_FEEDBACK_TOPICS_INPUT_LENGTH]
-        )[:MAX_STORED_FEEDBACK_TOPICS_LENGTH]
-
-    def namey(inStr, spacechar='_'):
-        aslug = re.sub(r'[^\w\s-]', '', inStr).strip().lower()
-        aslug = re.sub(r'\s+', spacechar, aslug)
-        return aslug
 
     username = None
     username_taken = False
     success = None
-    if not feedback_topics_error:
-        username_input = request.POST.get('username', '')
-        raw_slug = namey(username_input)
-        username = sanitize_user_input(raw_slug)
+    profile_saved = False
 
+    if not username_error:
+        username = normalize_username(raw_username)
+        if not username:
+            username_error = 'Enter a username containing letters, numbers, underscores, or hyphens.'
+        elif len(username) > MAX_USERNAME_LENGTH:
+            username_error = f'Username must be {MAX_USERNAME_LENGTH} characters or fewer.'
+
+    has_validation_error = any((
+        name_error,
+        username_error,
+        message_error,
+        feedback_topics_error,
+    ))
+
+    if not has_validation_error:
         existing = User.query(User.username == username).get()
         if existing and existing.key != user.key:
-            username_taken = True
+            username_taken = username
 
         if not username_taken:
             success = True if user.username else None
             user.username = username
-        else:
-            success = False
+            user.name = sanitize_single_line_user_input(raw_name)
+            user.message = sanitize_user_input(raw_message)
+            user.feedback_topics = feedback_topics
+            user.put()
+            profile_saved = True
 
-        raw_name = request.POST.get('name', '')
-        user.name = sanitize_user_input(raw_name)
-        user.message = sanitize_user_input(request.POST.get('message', ''))
-        user.feedback_topics = feedback_topics
-        user.put()
-        feedback_topics_form_value = feedback_topics
+    if profile_saved:
+        form_values = get_profile_form_values(user)
+    else:
+        form_values = {
+            'name_form_value': raw_name[:MAX_PROFILE_NAME_LENGTH],
+            'username_form_value': raw_username[:MAX_USERNAME_LENGTH],
+            'message_form_value': raw_message[:MAX_PROFILE_MESSAGE_LENGTH],
+            'feedback_topics_form_value': raw_feedback_topics[:MAX_FEEDBACK_TOPICS_INPUT_LENGTH],
+        }
 
     template_values = {
         'user': user,
         'success': success,
-        'username_taken': username if username_taken else False,
+        'username_taken': username_taken,
+        'name_error': name_error,
+        'username_error': username_error,
+        'message_error': message_error,
         'feedback_topics_error': feedback_topics_error,
-        'feedback_topics_form_value': feedback_topics_form_value,
     }
+    template_values.update(FORM_LIMITS)
+    template_values.update(form_values)
 
     per_page = get_bounded_int_value(request.POST.get('per_page'), PER_PAGE, 1, MAX_PER_PAGE)
     offset = get_bounded_int_value(request.POST.get('offset'), 0, 0)
@@ -391,69 +528,130 @@ def home_post(request):
     return render(request, 'home.html', template_values)
 
 def user_page(request, username):
-    target_user = User.query(User.username == username).get()
+    target_user = get_user_by_username(username)
     if (username == 'admonymous') and not target_user:
         target_user = User(username='admonymous', name='Admonymous')
         target_user.put()
 
     current_user = get_current_user(request)
-    return render(request, 'user.html', {
-        'target_user': target_user,
-        'target_user_first_name': target_user.first_name() if target_user else '',
-        'user': current_user
-    })
+    status = 200 if target_user else 404
+    return render_user_template(request, target_user, current_user, status=status)
 
 def user_page_post(request, username):
-    target_user = User.query(User.username == username).get()
+    target_user = get_user_by_username(username)
     current_user = get_current_user(request)
+    if not target_user:
+        return render_user_template(request, None, current_user, status=404)
 
-    author = sanitize_user_input(request.POST.get('author', 'anonymous'))
+    email_flag = request.POST.get('email', '')
+    if email_flag:
+        return render_user_template(
+            request,
+            target_user,
+            current_user,
+            success=True,
+        )
+
+    author_raw = request.POST.get('author', 'anonymous')
     body_raw = request.POST.get('body', '')
-    emailFlag = request.POST.get('email', '')
 
-    body_stripped = sanitize_user_input(body_raw)
-    processed_body_html = force_str(textile(smart_str(body_stripped)))
-
-    success = True
-    if emailFlag == '':
-        if body_stripped.strip():
-            client_ip = get_client_ip(request)
-            if filt.decide(client_ip, body_stripped):
-                response_entity = Response(
-                    body=processed_body_html,  # processed_body_html has already been sanitized and textile-ized
-                    author=author,
-                    user=target_user.key if target_user else None,
-                    revealed=True
-                )
-                response_entity.put()
-
-                if target_user and target_user.google_account_str:
-                    target_email = target_user.google_account_str
-                elif target_user and target_user.username == 'admonymous':
-                    target_email = 'eloise.rosen@gmail.com'
-                else:
-                    target_email = None
-
-                if target_email:
-                    subj = '%s left you a response on Admonymous' % ('Someone' if author == 'anonymous' else author)
-                    notification = email.EmailMessage(
-                        sender='Admonymous <notify@admonymous.co>',
-                        to=target_email,
-                        subject=subj
-                    )
-                    notification.render_and_send('notification', {
-                        'target_user': target_user,
-                        'author': None if author == 'anonymous' else author,
-                        'body_html': processed_body_html,
-                        'body_txt': body_raw
-                    })
-
-    template_values = {
-        'target_user': target_user,
-        'user': current_user,
-        'success': success
+    form_values = {
+        'feedback_author_form_value': author_raw[:MAX_FEEDBACK_AUTHOR_LENGTH],
+        'feedback_body_form_value': body_raw[:MAX_FEEDBACK_BODY_LENGTH],
     }
-    return render(request, 'user.html', template_values)
+
+    def validation_error(message, field):
+        return render_user_template(
+            request,
+            target_user,
+            current_user,
+            status=400,
+            feedback_error=message,
+            feedback_error_field=field,
+            **form_values,
+        )
+
+    if len(author_raw) > MAX_FEEDBACK_AUTHOR_LENGTH:
+        return validation_error(
+            f'Your name must be {MAX_FEEDBACK_AUTHOR_LENGTH} characters or fewer.',
+            'author',
+        )
+    if len(body_raw) > MAX_FEEDBACK_BODY_LENGTH:
+        return validation_error(
+            f'Feedback must be {MAX_FEEDBACK_BODY_LENGTH:,} characters or fewer.',
+            'body',
+        )
+    if not body_raw.strip():
+        return validation_error('Enter feedback before submitting.', 'body')
+
+    author = sanitize_single_line_user_input(author_raw) or 'anonymous'
+    body_stripped = sanitize_user_input(body_raw)
+    if not body_stripped.strip():
+        return validation_error('Enter feedback before submitting.', 'body')
+
+    client_ip = get_client_ip(request)
+    if not filt.decide(client_ip, body_stripped):
+        return render_user_template(
+            request,
+            target_user,
+            current_user,
+            success=True,
+        )
+
+    textile_html = force_str(textile(smart_str(body_stripped)))
+    processed_body_html = sanitize_feedback_html(textile_html)
+    if len(processed_body_html.encode('utf-8')) > MAX_FEEDBACK_HTML_BYTES:
+        return validation_error(
+            'That feedback creates too much formatted content. Use less formatting.',
+            'body',
+        )
+
+    visible_body = html.unescape(
+        bleach.clean(
+            processed_body_html,
+            tags=[],
+            attributes={},
+            strip=True,
+        )
+    ).strip()
+    if not visible_body:
+        return validation_error('Enter feedback before submitting.', 'body')
+
+    response_entity = Response(
+        body=processed_body_html,
+        author=author,
+        user=target_user.key,
+        revealed=True
+    )
+    response_entity.put()
+
+    if target_user.google_account_str:
+        target_email = target_user.google_account_str
+    elif target_user.username == 'admonymous':
+        target_email = 'eloise.rosen@gmail.com'
+    else:
+        target_email = None
+
+    if target_email:
+        subject_author = 'Someone' if author == 'anonymous' else author
+        notification = email.EmailMessage(
+            sender='Admonymous <notify@admonymous.co>',
+            to=target_email,
+            subject=f'{subject_author} left you a response on Admonymous'
+        )
+        notification.render_and_send('notification', {
+            'target_user': target_user,
+            'author': None if author == 'anonymous' else author,
+            'body_html': processed_body_html,
+            'body_txt': body_raw
+        })
+
+    return render_user_template(
+        request,
+        target_user,
+        current_user,
+        success=True,
+    )
 
 def contact(request):
     user = get_current_user(request)
@@ -584,8 +782,9 @@ def oauth_callback(request):
         userinfo = userinfo_resp.json()
         email = userinfo.get('email')
 
-        name_raw = userinfo.get('name', '')
-        name_clean = sanitize_user_input(name_raw)
+        name_raw = force_str(userinfo.get('name') or '')
+        bounded_name = name_raw[:MAX_PROFILE_NAME_LENGTH]
+        name_clean = sanitize_single_line_user_input(bounded_name)
 
     except Exception as e:
         return HttpResponse(f"Failed to fetch user info: {e}", status=500)
@@ -604,8 +803,10 @@ def oauth_callback(request):
 
     existing_user = User.query(User.google_account_str == email).get()
     if not existing_user:
-        placeholder_username_raw = re.sub(r'[^\w\s-]', '', name_clean.lower()).replace(' ', '-') or "user"
-        placeholder_username = sanitize_user_input(placeholder_username_raw)
+        placeholder_username = (
+            normalize_username(bounded_name, spacechar='-')[:MAX_USERNAME_LENGTH]
+            or 'user'
+        )
 
         new_user = User(
             google_account_str=email,

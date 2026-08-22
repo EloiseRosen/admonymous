@@ -49,12 +49,17 @@
   <form action="/{{ target_user.username }}/post" method="post" accept-charset="utf-8">
   {% csrf_token %}
     <input type="text" name="email" value="" id="email"/>
+    {% if feedback_error %}
+    <div class="alert-message error" id="feedback-error">
+      {{ feedback_error }} Your feedback was not submitted.
+    </div>
+    {% endif %}
     <fieldset style="padding-top:0px;">
-			<p>Enter your message here. If you haven't yet, please take a minute to go through some suggestions for <a href="/suggestions?giving" target="_giving">giving feedback</a> and <a href="/suggestions?anonymity" target="_anon">maintaining anonymity</a>.</p>
-      <textarea name="body" style="width:100%;height:200px;padding:20px;margin-top:0px;"></textarea><br/><br/>
+				<p>Enter your message here. If you haven't yet, please take a minute to go through some suggestions for <a href="/suggestions?giving" target="_giving">giving feedback</a> and <a href="/suggestions?anonymity" target="_anon">maintaining anonymity</a>.</p>
+      <textarea name="body" maxlength="{{ max_feedback_body_length }}" required{% if feedback_error_field == 'body' %} class="error" aria-invalid="true" aria-describedby="feedback-error"{% endif %} style="width:100%;height:200px;padding:20px;margin-top:0px;">{{ feedback_body_form_value|force_escape }}</textarea><br/><br/>
       
       <div style="text-align:right;width:100%;">
-        Enter your name here, or leave it anonymous: <input type="text" name="author" value="anonymous" style="height:29px;"/> <input class="btn primary" type="submit" value="Submit">
+        Enter your name here, or leave it anonymous: <input type="text" name="author" maxlength="{{ max_feedback_author_length }}" value="{{ feedback_author_form_value|force_escape }}"{% if feedback_error_field == 'author' %} class="error" aria-invalid="true" aria-describedby="feedback-error"{% endif %} style="height:29px;"/> <input class="btn primary" type="submit" value="Submit">
       </div>
     </fieldset>
   </form>
