@@ -89,6 +89,7 @@ settings.configure(
     SECRET_KEY=django_secret_key,
     ALLOWED_HOSTS=['*'],
     ROOT_URLCONF=__name__,
+    USE_TZ=False,
     INSTALLED_APPS=[
         'django.contrib.sessions',
         'django.middleware.common',
