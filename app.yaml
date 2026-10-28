@@ -23,3 +23,7 @@ handlers:
     static_files: static/robots.txt
     upload: static/robots.txt
     secure: always
+
+  - url: /.*
+    script: auto
+    secure: always

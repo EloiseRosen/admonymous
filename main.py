@@ -46,6 +46,10 @@ MAX_PROFILE_MESSAGE_LENGTH = 2_000
 MAX_FEEDBACK_HTML_BYTES = 64 * 1024
 MAX_INDEXED_STRING_BYTES = 1_500
 
+# Bump this value to invalidate every existing authenticated signed-cookie
+# session. Sessions created before HTTPS enforcement do not contain this value.
+AUTH_SESSION_VERSION = 2
+
 FEEDBACK_HTML_TAGS = frozenset({
     'p', 'br', 'strong', 'em', 'b', 'i',
     'ul', 'ol', 'li', 'blockquote', 'pre', 'code',
@@ -84,6 +88,10 @@ os.environ['SENDGRID_API_KEY'] = real_sendgrid_key
 django_secret_name = os.environ.get('DJANGO_SECRET_KEY_NAME', 'django-secret-key')
 django_secret_key = get_secret_value(django_secret_name)
 
+# Production is secure by default. Local HTTP development must be opted into
+# explicitly with ADMONYMOUS_ENV=development.
+is_local_development = os.environ.get('ADMONYMOUS_ENV') == 'development'
+
 settings.configure(
     DEBUG=False,
     SECRET_KEY=django_secret_key,
@@ -112,6 +120,12 @@ settings.configure(
     SESSION_ENGINE="django.contrib.sessions.backends.signed_cookies",
 
     SECURE_PROXY_SSL_HEADER=('HTTP_X_FORWARDED_PROTO', 'https'),
+    SECURE_SSL_REDIRECT=not is_local_development,
+    SESSION_COOKIE_SECURE=not is_local_development,
+    CSRF_COOKIE_SECURE=not is_local_development,
+    SECURE_HSTS_SECONDS=0 if is_local_development else 31_536_000,
+    SECURE_HSTS_INCLUDE_SUBDOMAINS=False,
+    SECURE_HSTS_PRELOAD=False,
     USE_X_FORWARDED_HOST=True,
 )
 
@@ -297,6 +311,8 @@ def prepare_responses_for_display(responses):
 
 def get_current_user(request):
     """Return the NDB User object for logged in user (from session)."""
+    if request.session.get('auth_session_version') != AUTH_SESSION_VERSION:
+        return None
     user_key_urlsafe = request.session.get('user_key')
     if not user_key_urlsafe:
         return None
@@ -818,7 +834,9 @@ def oauth_callback(request):
         new_user.put()
         existing_user = new_user
 
+    request.session.cycle_key()
     request.session['user_key'] = existing_user.key.urlsafe().decode('utf-8')
+    request.session['auth_session_version'] = AUTH_SESSION_VERSION
     request.session.pop('oauth_state', None)
     return redirect('/')
 
